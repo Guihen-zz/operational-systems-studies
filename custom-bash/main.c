@@ -5,15 +5,25 @@
 int main(int argc, char *argv[])
 {
   char path[64];
-  int cmdlinesize = 64;
   char *cmdline;
+  int cmdlinesize = 64;
+  int readedchars, childpid;
 
   getcwd(path, 64);
   cmdline = malloc(64);
+  printf("\n");
   while(1) {
-    printf("\n[%s] ", path);
-    getline(&cmdline, (void *) &cmdlinesize, stdin);
-    printf("%s", cmdline);
+    printf("[%s] ", path);
+
+    readedchars = getline(&cmdline, (void *) &cmdlinesize, stdin);
+    cmdline[readedchars-1] = '\0';
+
+    if ((childpid = fork()) == 0) {
+      execve(cmdline, argv, 0);
+    }
+    else {
+      wait(&childpid);
+    }
   }
 
   printf("\n");
