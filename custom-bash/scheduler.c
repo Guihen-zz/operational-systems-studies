@@ -6,7 +6,6 @@ int main(int argc, char *argv[])
   char *tracer_file_name;
   char process_name[16];
   int t0, dt, deadline, priority, status;
-  void *tracer_content;
   FILE *tracer_file;
 
   tracer_file_name = argv[1];
