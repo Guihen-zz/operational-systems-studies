@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <sched.h>
 
 #define FCFS 1
 
@@ -34,6 +35,8 @@ void *perform(void *argument)
   return NULL;
 }
 
+void fcfs(ProcessDefinition *, int process_counter);
+
 int main(int argc, char *argv[])
 {
   char *tracer_file_name;
@@ -42,10 +45,7 @@ int main(int argc, char *argv[])
   int t0, dt, deadline, priority, status;
   FILE *tracer_file;
   ProcessDefinition PDCollection[64];
-  int PDcounter = 0, started_threads_counter = 0;
-  struct timeval started_time, time_now;
-  long elapsed_time;
-  pthread_t *threads;
+  int pd_counter = 0;
 
   scheduler_mode = atoi(argv[1]);
   tracer_file_name = argv[2];
@@ -56,51 +56,70 @@ int main(int argc, char *argv[])
       &t0, process_name, &dt, &deadline, &priority);
     if (status == EOF) break;
 
-    PDCollection[PDcounter] = malloc(sizeof(PDCollection));
-    PDCollection[PDcounter]->pname = malloc(32);
-    strcpy(PDCollection[PDcounter]->pname, process_name);
+    PDCollection[pd_counter] = malloc(sizeof(PDCollection));
+    PDCollection[pd_counter]->pname = malloc(32);
+    strcpy(PDCollection[pd_counter]->pname, process_name);
 
-    PDCollection[PDcounter]->t0 = t0;
-    PDCollection[PDcounter]->dt = dt;
-    PDCollection[PDcounter]->deadline = deadline;
-    PDCollection[PDcounter]->priority = priority;
-    PDcounter++;
+    PDCollection[pd_counter]->t0 = t0;
+    PDCollection[pd_counter]->dt = dt;
+    PDCollection[pd_counter]->deadline = deadline;
+    PDCollection[pd_counter]->priority = priority;
+    pd_counter++;
   }
   fclose(tracer_file);
 
-  for(int i = 0; i < PDcounter; i++)
+  for(int i = 0; i < pd_counter; i++)
   {
     printf("%d %s %d %d %d\n", PDCollection[i]->t0, PDCollection[i]->pname, PDCollection[i]->dt, PDCollection[i]->deadline, PDCollection[i]->priority);
   }
 
-  threads = malloc(sizeof(* threads) * PDcounter);
-  gettimeofday(&started_time, NULL);
-  while(started_threads_counter < PDcounter)
-  {
-    gettimeofday(&time_now, NULL);
-    elapsed_time = (time_now.tv_sec - started_time.tv_sec);
-    if(elapsed_time >= PDCollection[started_threads_counter]->t0)
-    {
-      pthread_create(&threads[started_threads_counter], NULL, perform, PDCollection[started_threads_counter]);
-      started_threads_counter++;
-    }
-    else
-    {
-      usleep(100000);
-    }
-
-    switch (scheduler_mode) {
-      case FCFS:
-        // DO NOTHING
-        break;
-    }
-
-  }
-
-  for(int i = 0; i < PDcounter; i++)
-  {
-    pthread_join(threads[i], NULL);
+  switch (scheduler_mode) {
+    case FCFS:
+      fcfs(PDCollection, pd_counter);
+      break;
   }
 
   return 0;
+}
+
+void fcfs(ProcessDefinition *PDCollection, int pd_counter)
+{
+  struct timeval started_time, time_now;
+  int started_threads_counter = 0;
+  int cpu_cores, allocated_cpu_cores = 0;
+  long elapsed_time;
+  pthread_t *threads;
+  cpu_set_t cpuset;
+
+
+  cpu_cores = sysconf(_SC_NPROCESSORS_ONLN);
+  threads = malloc(sizeof(* threads) * pd_counter);
+  gettimeofday(&started_time, NULL);
+  while(started_threads_counter < pd_counter)
+  {
+    if(allocated_cpu_cores < cpu_cores)
+    {
+      gettimeofday(&time_now, NULL);
+      elapsed_time = (time_now.tv_sec - started_time.tv_sec);
+      if(elapsed_time >= PDCollection[started_threads_counter]->t0)
+      {
+        pthread_create(&threads[started_threads_counter], NULL, perform, PDCollection[started_threads_counter]);
+
+        CPU_ZERO(&cpuset);
+        CPU_SET(allocated_cpu_cores, &cpuset);
+        pthread_setaffinity_np(threads[started_threads_counter], sizeof(cpu_set_t), &cpuset);
+
+        started_threads_counter++;
+      }
+      else
+      {
+        usleep(100000);
+      }
+    }
+
+    for(int i = 0; i < pd_counter; i++)
+    {
+      pthread_join(threads[i], NULL);
+    }
+  }
 }
