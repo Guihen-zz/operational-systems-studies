@@ -39,7 +39,9 @@ int main(int argc, char *argv[])
   int t0, dt, deadline, priority, status;
   FILE *tracer_file;
   ProcessDefinition PDCollection[64];
-  int PDcounter = 0;
+  int PDcounter = 0, started_threads_counter = 0;
+  struct timeval started_time, time_now;
+  long elapsed_time;
   pthread_t *threads;
 
   tracer_file_name = argv[1];
@@ -68,9 +70,20 @@ int main(int argc, char *argv[])
   }
 
   threads = malloc(sizeof(* threads) * PDcounter);
-  for(int i = 0; i < PDcounter; i++)
+  gettimeofday(&started_time, NULL);
+  while(started_threads_counter < PDcounter)
   {
-    pthread_create(&threads[i], NULL, perform, PDCollection[i]);
+    gettimeofday(&time_now, NULL);
+    elapsed_time = (time_now.tv_sec - started_time.tv_sec);
+    if(elapsed_time >= PDCollection[started_threads_counter]->t0)
+    {
+      pthread_create(&threads[started_threads_counter], NULL, perform, PDCollection[started_threads_counter]);
+      started_threads_counter++;
+    }
+    else
+    {
+      usleep(100000);
+    }
   }
 
   for(int i = 0; i < PDcounter; i++)
