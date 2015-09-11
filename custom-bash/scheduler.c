@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <pthread.h>
+#include <time.h>
 
 typedef struct process_definition{
   int t0;
@@ -9,6 +11,19 @@ typedef struct process_definition{
   char *pname;
 } * ProcessDefinition;
 
+void *perform(void *argument)
+{
+  // int *work_result = molloc(sizeof(int));
+  // (* work_result) = 0;
+  // for(int i = 0; i < 100; i++)
+  // {
+  //   (* work_result) += rand() % 1000;
+  // }
+  // return work_result;
+  printf("hi\n");
+  return NULL;
+}
+
 int main(int argc, char *argv[])
 {
   char *tracer_file_name;
@@ -17,6 +32,7 @@ int main(int argc, char *argv[])
   FILE *tracer_file;
   ProcessDefinition PDCollection[64];
   int PDcounter = 0;
+  pthread_t *threads;
 
   tracer_file_name = argv[1];
   tracer_file = fopen(tracer_file_name, "r");
@@ -34,10 +50,23 @@ int main(int argc, char *argv[])
     PDCollection[PDcounter]->priority = priority;
     PDcounter++;
   }
-
-  printf("%d %s %d %d %d\n", PDCollection[0]->t0, PDCollection[0]->pname, PDCollection[0]->dt, PDCollection[0]->deadline, PDCollection[0]->priority);
-  printf("%d %s %d %d %d\n", PDCollection[1]->t0, PDCollection[1]->pname, PDCollection[1]->dt, PDCollection[1]->deadline, PDCollection[1]->priority);
   fclose(tracer_file);
+
+  for(int i = 0; i < PDcounter; i++)
+  {
+    printf("%d %s %d %d %d\n", PDCollection[i]->t0, PDCollection[i]->pname, PDCollection[i]->dt, PDCollection[i]->deadline, PDCollection[i]->priority);
+  }
+
+  threads = malloc(sizeof(* threads) * PDcounter);
+  for(int i = 0; i < PDcounter; i++)
+  {
+    pthread_create(&threads[i], NULL, perform, NULL);
+  }
+
+  for(int i = 0; i < PDcounter; i++)
+  {
+    pthread_join(threads[i], NULL);
+  }
 
   return 0;
 }
