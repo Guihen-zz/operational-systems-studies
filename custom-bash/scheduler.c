@@ -95,15 +95,13 @@ void fcfs(ProcessDefinition *PDCollection, int pd_counter)
   cpu_set_t cpuset;
   int i;
 
-
   cpu_cores = sysconf(_SC_NPROCESSORS_ONLN);
-  printf("cpu %d\n" , cpu_cores);
   threads = malloc(sizeof(* threads) * pd_counter);
   gettimeofday(&started_time, NULL);
   while(started_threads_counter < pd_counter)
   {
-if(allocated_cpu_cores < cpu_cores)
-{
+    if(allocated_cpu_cores < cpu_cores)
+    {
       gettimeofday(&time_now, NULL);
       elapsed_time = (time_now.tv_sec - started_time.tv_sec);
       if(elapsed_time >= PDCollection[started_threads_counter]->t0)
@@ -115,19 +113,18 @@ if(allocated_cpu_cores < cpu_cores)
         pthread_setaffinity_np(threads[started_threads_counter], sizeof(cpu_set_t), &cpuset);
 
         started_threads_counter++;
-allocated_cpu_cores++;
+        allocated_cpu_cores++;
       }
       else
       {
         usleep(100000);
       }
 
-} 
-}
-
-    for(i = 0; i < pd_counter; i++)
-    {
-      pthread_join(threads[i], NULL);
     }
- 
+  }
+
+  for(i = 0; i < pd_counter; i++)
+  {
+    pthread_join(threads[i], NULL);
+  }
 }
