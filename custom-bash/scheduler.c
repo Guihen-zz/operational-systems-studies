@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <time.h>
+#include <string.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 typedef struct process_definition{
   int t0;
@@ -13,14 +16,19 @@ typedef struct process_definition{
 
 void *perform(void *argument)
 {
-  // int *work_result = molloc(sizeof(int));
-  // (* work_result) = 0;
-  // for(int i = 0; i < 100; i++)
-  // {
-  //   (* work_result) += rand() % 1000;
-  // }
-  // return work_result;
-  printf("hi\n");
+  ProcessDefinition pd = argument;
+  struct timeval start, end;
+  long secs_used = 0;
+  while (secs_used < pd->dt)
+  {
+    printf("%s\n", pd->pname);
+    gettimeofday(&start, NULL);
+    usleep(1000000);
+    gettimeofday(&end, NULL);
+    secs_used += (end.tv_sec - start.tv_sec);
+  }
+
+  printf("time: %ld\n", secs_used);
   return NULL;
 }
 
@@ -43,8 +51,10 @@ int main(int argc, char *argv[])
     if (status == EOF) break;
 
     PDCollection[PDcounter] = malloc(sizeof(PDCollection));
+    PDCollection[PDcounter]->pname = malloc(32);
+    strcpy(PDCollection[PDcounter]->pname, process_name);
+
     PDCollection[PDcounter]->t0 = t0;
-    PDCollection[PDcounter]->pname = process_name;
     PDCollection[PDcounter]->dt = dt;
     PDCollection[PDcounter]->deadline = deadline;
     PDCollection[PDcounter]->priority = priority;
@@ -60,7 +70,7 @@ int main(int argc, char *argv[])
   threads = malloc(sizeof(* threads) * PDcounter);
   for(int i = 0; i < PDcounter; i++)
   {
-    pthread_create(&threads[i], NULL, perform, NULL);
+    pthread_create(&threads[i], NULL, perform, PDCollection[i]);
   }
 
   for(int i = 0; i < PDcounter; i++)
