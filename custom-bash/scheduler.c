@@ -101,8 +101,6 @@ void fcfs(ProcessDefinition *PDCollection, int pd_counter)
   gettimeofday(&started_time, NULL);
   while(started_threads_counter < pd_counter)
   {
-    if(allocated_cpu_cores < cpu_cores)
-    {
       gettimeofday(&time_now, NULL);
       elapsed_time = (time_now.tv_sec - started_time.tv_sec);
       if(elapsed_time >= PDCollection[started_threads_counter]->t0)
@@ -119,7 +117,6 @@ void fcfs(ProcessDefinition *PDCollection, int pd_counter)
       {
         usleep(100000);
       }
-    }
 
     for(i = 0; i < pd_counter; i++)
     {
