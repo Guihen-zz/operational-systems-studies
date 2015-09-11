@@ -6,6 +6,8 @@
 #include <sys/time.h>
 #include <unistd.h>
 
+#define FCFS 1
+
 typedef struct process_definition{
   int t0;
   int dt;
@@ -35,6 +37,7 @@ void *perform(void *argument)
 int main(int argc, char *argv[])
 {
   char *tracer_file_name;
+  int scheduler_mode;
   char process_name[16];
   int t0, dt, deadline, priority, status;
   FILE *tracer_file;
@@ -44,7 +47,8 @@ int main(int argc, char *argv[])
   long elapsed_time;
   pthread_t *threads;
 
-  tracer_file_name = argv[1];
+  scheduler_mode = atoi(argv[1]);
+  tracer_file_name = argv[2];
   tracer_file = fopen(tracer_file_name, "r");
   while (tracer_file)
   {
@@ -84,6 +88,13 @@ int main(int argc, char *argv[])
     {
       usleep(100000);
     }
+
+    switch (scheduler_mode) {
+      case FCFS:
+        // DO NOTHING
+        break;
+    }
+
   }
 
   for(int i = 0; i < PDcounter; i++)
