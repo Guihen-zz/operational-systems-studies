@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+#include <sys/sysinfo.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -39,6 +41,7 @@ void fcfs(ProcessDefinition *, int process_counter);
 
 int main(int argc, char *argv[])
 {
+  int i;
   char *tracer_file_name;
   int scheduler_mode;
   char process_name[16];
@@ -68,7 +71,7 @@ int main(int argc, char *argv[])
   }
   fclose(tracer_file);
 
-  for(int i = 0; i < pd_counter; i++)
+  for(i = 0; i < pd_counter; i++)
   {
     printf("%d %s %d %d %d\n", PDCollection[i]->t0, PDCollection[i]->pname, PDCollection[i]->dt, PDCollection[i]->deadline, PDCollection[i]->priority);
   }
@@ -90,6 +93,7 @@ void fcfs(ProcessDefinition *PDCollection, int pd_counter)
   long elapsed_time;
   pthread_t *threads;
   cpu_set_t cpuset;
+  int i;
 
 
   cpu_cores = sysconf(_SC_NPROCESSORS_ONLN);
@@ -117,7 +121,7 @@ void fcfs(ProcessDefinition *PDCollection, int pd_counter)
       }
     }
 
-    for(int i = 0; i < pd_counter; i++)
+    for(i = 0; i < pd_counter; i++)
     {
       pthread_join(threads[i], NULL);
     }
