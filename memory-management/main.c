@@ -1,13 +1,18 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define EMPTY_SPACE -1
+
+/******************************************************************************/
+FILE * generate_memory_file(int size);
+FILE * generate_virtual_memory_file(int size);
+
+/******************************************************************************/
 int main( int argc, char *argv[]) {
   char *tracefile_name;
   FILE *tracefile;
   int memory_size, virtual_memory_size;
   FILE *memory_file, *virtual_memory_file;
-  int i;
-  short c = -1;
 
   tracefile_name = argv[1];
   tracefile = fopen( tracefile_name, "r");
@@ -17,17 +22,27 @@ int main( int argc, char *argv[]) {
     return 1;
   }
 
-  memory_file = fopen( "/tmp/ep2.mem", "wb");
-  for( i = 0; i < memory_size; i++) {
-    fwrite( &c, 1, 1, memory_file);
-  }
+  memory_file = generate_memory_file(memory_size);
+  virtual_memory_file = generate_virtual_memory_file(virtual_memory_size);
+
   fclose(memory_file);
-
-  virtual_memory_file = fopen("/tmp/ep2.vir", "wb");
-  for( i = 0; i < virtual_memory_size; i++) {
-    fwrite( &c, 1, 1, virtual_memory_file);
-  }
   fclose(virtual_memory_file);
-
   return 0;
+}
+
+/******************************************************************************/
+FILE * generate_memory_file(int size) {
+  FILE *file = fopen( "/tmp/ep2.mem", "wb");
+  short byte = EMPTY_SPACE;
+  int i;
+  for( i = 0; i < size; i++) fwrite( &byte, 1, 1, file);
+  return file;
+}
+
+FILE * generate_virtual_memory_file(int size) {
+  FILE *file = fopen("/tmp/ep2.vir", "wb");
+  short byte = EMPTY_SPACE;
+  int i;
+  for( i = 0; i < size; i++) fwrite( &byte, 1, 1, file);
+  return file;
 }
