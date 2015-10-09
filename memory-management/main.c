@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <pthread.h>
+#include <sys/time.h>
+#include <unistd.h>
+
 
 #define EMPTY_SPACE -1
 #define PROCESS_NAME_MAX_LENGHT 16
@@ -29,6 +33,7 @@ typedef struct experiment {
 FILE * generate_memory_file(int size);
 FILE * generate_virtual_memory_file(int size);
 Experiment generate_experiment(FILE *);
+void * perform( void *);
 
 /******************************************************************************/
 int main( int argc, char *argv[]) {
@@ -41,6 +46,7 @@ int main( int argc, char *argv[]) {
   struct access_request access_request;
   size_t len = 0;
   ssize_t read;
+  pthread_t *threads;
   char *line = malloc(128);
 
   tracefile_name = argv[1];
@@ -56,17 +62,13 @@ int main( int argc, char *argv[]) {
   virtual_memory_file = generate_virtual_memory_file(virtual_memory_size);
   experiment = generate_experiment(tracefile);
 
+  threads = malloc(sizeof(* threads) * experiment->trials_counter);
   for(j = 0; j < experiment->trials_counter; j++) {
-    printf("%f %s %f %d\n",
-      experiment->trials[j]->t0,
-      experiment->trials[j]->name,
-      experiment->trials[j]->tf,
-      experiment->trials[j]->b);
+    pthread_create(&threads[j], NULL, perform, experiment->trials[j]);
+  }
 
-    for(i = 0; experiment->trials[j]->access_requests_counter > i; i++) {
-      printf("%f %d ", experiment->trials[j]->access_requests[i].t, experiment->trials[j]->access_requests[i].p);
-    }
-    printf("\n");
+  for(j = 0; j < experiment->trials_counter; j++) {
+    pthread_join(threads[j], NULL);
   }
 
   fclose(memory_file);
@@ -144,4 +146,23 @@ Experiment generate_experiment(FILE *tracefile) {
 
   experiment->trials_counter = trials_counter;
   return experiment;
+}
+
+void * perform(void *argument)
+{
+  ProcessDefinition pd = argument;
+  struct timeval start, now;
+  float deadline = pd->tf - pd->t0;
+  long elapsed_time = 0;
+
+  usleep(pd->t0 * 1000);
+  gettimeofday(&start, NULL);
+  while (elapsed_time < deadline)
+  {
+    gettimeofday(&now, NULL);
+    elapsed_time = (now.tv_sec - start.tv_sec);
+  }
+
+  printf("%s time: %ld\n", pd->name, elapsed_time);
+  return NULL;
 }
