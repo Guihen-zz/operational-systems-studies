@@ -152,15 +152,22 @@ void * perform(void *argument)
 {
   ProcessDefinition pd = argument;
   struct timeval start, now;
-  float deadline = pd->tf - pd->t0;
   long elapsed_time = 0;
+  int access_request_index = 0;
 
-  usleep(pd->t0 * 1000);
   gettimeofday(&start, NULL);
-  while (elapsed_time < deadline)
+  usleep(pd->t0 * 1000);
+  printf("starting %s\n", pd->name);
+
+  while (elapsed_time < pd->tf)
   {
     gettimeofday(&now, NULL);
     elapsed_time = (now.tv_sec - start.tv_sec);
+
+    if(pd->access_requests[access_request_index].t <= elapsed_time) {
+      printf("%s requested the position %d at time %f\n", pd->name, pd->access_requests[access_request_index].p, pd->access_requests[access_request_index].t);
+      access_request_index++;
+    }
   }
 
   printf("%s time: %ld\n", pd->name, elapsed_time);
