@@ -34,6 +34,7 @@ FILE * generate_memory_file(int size);
 FILE * generate_virtual_memory_file(int size);
 Experiment generate_experiment(FILE *);
 void * perform( void *);
+void memory_request(ProcessDefinition, struct access_request);
 
 /******************************************************************************/
 int main( int argc, char *argv[]) {
@@ -165,11 +166,15 @@ void * perform(void *argument)
     elapsed_time = (now.tv_sec - start.tv_sec);
 
     if(pd->access_requests[access_request_index].t <= elapsed_time) {
-      printf("%s requested the position %d at time %f\n", pd->name, pd->access_requests[access_request_index].p, pd->access_requests[access_request_index].t);
+      memory_request(pd, pd->access_requests[access_request_index]);
       access_request_index++;
     }
   }
 
   printf("%s time: %ld\n", pd->name, elapsed_time);
   return NULL;
+}
+
+void memory_request(ProcessDefinition pd, struct access_request ar) {
+  printf("%s requested the position %d at time %f\n", pd->name, ar.p, ar.t);
 }
