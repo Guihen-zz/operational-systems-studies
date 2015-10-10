@@ -6,7 +6,7 @@
 #include <unistd.h>
 
 
-#define EMPTY_SPACE -1
+#define EMPTY_SPACE 255
 #define PROCESS_NAME_MAX_LENGHT 16
 #define MAX_PROCESS_SIZE 32
 #define MAX_ACCESS_REQUEST 16
@@ -30,6 +30,8 @@ typedef struct experiment {
 } * Experiment;
 
 /******************************************************************************/
+
+/******************************************************************************/
 FILE * generate_memory_file(int size);
 FILE * generate_virtual_memory_file(int size);
 Experiment generate_experiment(FILE *);
@@ -39,9 +41,8 @@ void memory_request(ProcessDefinition, struct access_request);
 /******************************************************************************/
 int main( int argc, char *argv[]) {
   char *tracefile_name;
-  FILE *tracefile;
+  FILE *tracefile, *memory_file, *virtual_memory_file;
   int memory_size, virtual_memory_size;
-  FILE *memory_file, *virtual_memory_file;
   Experiment experiment;
   int i, j;
   struct access_request access_request;
@@ -62,6 +63,8 @@ int main( int argc, char *argv[]) {
   memory_file = generate_memory_file(memory_size);
   virtual_memory_file = generate_virtual_memory_file(virtual_memory_size);
   experiment = generate_experiment(tracefile);
+  fclose(memory_file);
+  fclose(virtual_memory_file);
 
   threads = malloc(sizeof(* threads) * experiment->trials_counter);
   for(j = 0; j < experiment->trials_counter; j++) {
@@ -72,14 +75,12 @@ int main( int argc, char *argv[]) {
     pthread_join(threads[j], NULL);
   }
 
-  fclose(memory_file);
-  fclose(virtual_memory_file);
   return 0;
 }
 
 /******************************************************************************/
 FILE * generate_memory_file(int size) {
-  FILE *file = fopen( "/tmp/ep2.mem", "wb");
+  FILE *file = fopen( "/tmp/ep2.mem", "w");
   short byte = EMPTY_SPACE;
   int i;
   for( i = 0; i < size; i++) fwrite( &byte, 1, 1, file);
@@ -88,7 +89,8 @@ FILE * generate_memory_file(int size) {
 
 FILE * generate_virtual_memory_file(int size) {
   FILE *file = fopen("/tmp/ep2.vir", "wb");
-  short byte = EMPTY_SPACE;
+  char byte = EMPTY_SPACE;
+
   int i;
   for( i = 0; i < size; i++) fwrite( &byte, 1, 1, file);
   return file;
@@ -176,5 +178,8 @@ void * perform(void *argument)
 }
 
 void memory_request(ProcessDefinition pd, struct access_request ar) {
+  // FILE * memory_file = fopen("/tmp/ep2.mem", "r");
+  // fread(&i, 1, 1, memory_file);
+  // fclose(memory_file);
   printf("%s requested the position %d at time %f\n", pd->name, ar.p, ar.t);
 }
