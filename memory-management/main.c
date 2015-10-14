@@ -22,6 +22,7 @@ typedef struct process_definition {
   int b;
   struct access_request access_requests[MAX_ACCESS_REQUEST];
   int access_requests_counter;
+  char pid;
 } *ProcessDefinition;
 
 typedef struct experiment {
@@ -29,7 +30,13 @@ typedef struct experiment {
   int trials_counter;
 } * Experiment;
 
+struct memory_map {
+  int begin;
+  int end;
+};
+
 /******************************************************************************/
+struct memory_map MEMORY_MAPPER[257];
 
 /******************************************************************************/
 FILE * generate_memory_file(int size);
@@ -50,6 +57,7 @@ int main( int argc, char *argv[]) {
   ssize_t read;
   pthread_t *threads;
   char *line = malloc(128);
+  char c;
 
   tracefile_name = argv[1];
   tracefile = fopen( tracefile_name, "r");
@@ -61,10 +69,14 @@ int main( int argc, char *argv[]) {
   }
 
   memory_file = generate_memory_file(memory_size);
-  virtual_memory_file = generate_virtual_memory_file(virtual_memory_size);
-  experiment = generate_experiment(tracefile);
   fclose(memory_file);
+  virtual_memory_file = generate_virtual_memory_file(virtual_memory_size);
   fclose(virtual_memory_file);
+
+  MEMORY_MAPPER[0].begin = -1;
+  MEMORY_MAPPER[0].end = -1;
+
+  experiment = generate_experiment(tracefile);
 
   threads = malloc(sizeof(* threads) * experiment->trials_counter);
   for(j = 0; j < experiment->trials_counter; j++) {
@@ -74,6 +86,12 @@ int main( int argc, char *argv[]) {
   for(j = 0; j < experiment->trials_counter; j++) {
     pthread_join(threads[j], NULL);
   }
+
+  memory_file = fopen("/tmp/ep2.mem", "rb");
+  while(fscanf(memory_file, "%c", &c) != EOF) {
+    printf("%hhd", c);
+  }
+  fclose(memory_file);
 
   return 0;
 }
@@ -109,6 +127,7 @@ Experiment generate_experiment(FILE *tracefile) {
   char  *str;
   float f;
   int i;
+  char pid = 1;
 
   experiment->trials = malloc(sizeof(ProcessDefinition)* MAX_PROCESS_SIZE);
   trials_counter = 0;
@@ -143,6 +162,9 @@ Experiment generate_experiment(FILE *tracefile) {
     }
 
     process_definition->access_requests_counter = access_requests_counter;
+    MEMORY_MAPPER[pid].begin = MEMORY_MAPPER[pid - 1].end;
+    MEMORY_MAPPER[pid].end = MEMORY_MAPPER[pid].begin + process_definition->b;
+    process_definition->pid = pid++;
     experiment->trials[trials_counter] = process_definition;
     trials_counter++;
   }
@@ -178,8 +200,11 @@ void * perform(void *argument)
 }
 
 void memory_request(ProcessDefinition pd, struct access_request ar) {
-  // FILE * memory_file = fopen("/tmp/ep2.mem", "r");
-  // fread(&i, 1, 1, memory_file);
-  // fclose(memory_file);
-  printf("%s requested the position %d at time %f\n", pd->name, ar.p, ar.t);
+  FILE * memory_file = fopen("/tmp/ep2.mem", "r+b");
+  fseek(memory_file, MEMORY_MAPPER[pd->pid].begin + ar.p, SEEK_SET);
+  fwrite(&pd->pid, 1, 1, memory_file);
+  fclose(memory_file);
+
+  // printf("%s requested the position %d at time %f\n", pd->name, ar.p, ar.t);
+  // printf("writing %hhd at position %d\n", pd->pid, MEMORY_MAPPER[pd->pid].begin + ar.p);
 }
