@@ -44,6 +44,7 @@ FILE * generate_virtual_memory_file(int size);
 Experiment generate_experiment(FILE *);
 void * perform( void *);
 void memory_request(ProcessDefinition, struct access_request);
+void memory_assign_block(char pid);
 
 /******************************************************************************/
 int main( int argc, char *argv[]) {
@@ -164,6 +165,7 @@ Experiment generate_experiment(FILE *tracefile) {
     process_definition->access_requests_counter = access_requests_counter;
     MEMORY_MAPPER[pid].begin = MEMORY_MAPPER[pid - 1].end;
     MEMORY_MAPPER[pid].end = MEMORY_MAPPER[pid].begin + process_definition->b;
+    memory_assign_block(pid);
     process_definition->pid = pid++;
     experiment->trials[trials_counter] = process_definition;
     trials_counter++;
@@ -207,4 +209,15 @@ void memory_request(ProcessDefinition pd, struct access_request ar) {
 
   // printf("%s requested the position %d at time %f\n", pd->name, ar.p, ar.t);
   // printf("writing %hhd at position %d\n", pd->pid, MEMORY_MAPPER[pd->pid].begin + ar.p);
+}
+
+void memory_assign_block(char pid) {
+  int i;
+  FILE * memory_file = fopen("/tmp/ep2.mem", "r+b");
+
+  for( i = MEMORY_MAPPER[pid].begin; i < MEMORY_MAPPER[pid].end; i++) {
+    fseek(memory_file, i, SEEK_SET);
+    fwrite(&pid, 1, 1, memory_file);
+  }
+  fclose(memory_file);
 }
