@@ -269,23 +269,21 @@ void memory_assign_block(ProcessDefinition pd) {
   }
 
   // if memory_usage_cursor == NULL: use virtual memory
-  if( memory_usage_cursor != NULL) {
-    aux = malloc(sizeof(* aux));
-
-    aux->begin = memory_usage_cursor->begin + pd->b;
-    aux->size = memory_usage_cursor->size - pd->b;
-    aux->status = 0;
-    aux->next = memory_usage_cursor->next;
-    aux->prev = memory_usage_cursor;
-
-    memory_usage_cursor->next = aux;
-    memory_usage_cursor->size = pd->b;
-    memory_usage_cursor->status = 1;
-    memory_usage_cursor->pid = pd->pid;
-  }
-  else {
+  if( memory_usage_cursor == NULL) {
     memory_usage_cursor = memory_swap(pd->b);
   }
+  aux = malloc(sizeof(* aux));
+
+  aux->begin = memory_usage_cursor->begin + pd->b;
+  aux->size = memory_usage_cursor->size - pd->b;
+  aux->status = 0;
+  aux->next = memory_usage_cursor->next;
+  aux->prev = memory_usage_cursor;
+
+  memory_usage_cursor->next = aux;
+  memory_usage_cursor->size = pd->b;
+  memory_usage_cursor->status = 1;
+  memory_usage_cursor->pid = pd->pid;
 
   memory_file = fopen("/tmp/ep2.mem", "r+b");
   for( i = memory_usage_cursor->begin; i < memory_usage_cursor->begin + memory_usage_cursor->size; i++) {
@@ -296,23 +294,33 @@ void memory_assign_block(ProcessDefinition pd) {
 }
 
 struct memory_usage * memory_swap(int block_size) {
-  struct memory_usage * memory_usage_cursor, * virtual_memory_cursor, *aux;
+  struct memory_usage * memory_usage_cursor, * virtual_memory_cursor, *aux, *current;
   int swapped_size;
 
   for(  memory_usage_cursor = MEMORY_USAGE, swapped_size = 0;
-        swapped_size < block_size;
-        memory_usage_cursor = memory_usage_cursor->next) {
+        swapped_size < block_size; memory_usage_cursor = current) {
     for(  virtual_memory_cursor = VIRTUAL_MEMORY_USAGE;
-          virtual_memory_cursor->status == 0;
+          virtual_memory_cursor->status == 1;
           virtual_memory_cursor = virtual_memory_cursor->next);
 
+    printf("%d\n", swapped_size);
+    fflush(stdout);
+    current = memory_usage_cursor->next;
     aux = memory_usage_cursor->prev;
-    aux->size = aux->size + memory_usage_cursor->size;
-    aux->next = memory_usage_cursor->next;
-    memory_usage_cursor->next->prev = aux;
+    if(aux != NULL) {
+      aux->size = aux->size + memory_usage_cursor->size;
+      aux->next = memory_usage_cursor->next;
+    }
+    if(memory_usage_cursor->next != NULL) {
+      memory_usage_cursor->next->prev = aux;
+    }
 
     aux = virtual_memory_cursor->prev;
-    aux->next = memory_usage_cursor;
+
+    if(aux != NULL) {
+      aux->next = memory_usage_cursor;
+    }
+
     memory_usage_cursor->prev = aux;
     memory_usage_cursor->next = virtual_memory_cursor;
     virtual_memory_cursor->prev = memory_usage_cursor;
