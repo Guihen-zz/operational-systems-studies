@@ -35,8 +35,16 @@ struct memory_map {
   int end;
 };
 
+struct memory_usage {
+  char status; /* 0: empty, 1: assigned */
+  int begin;
+  int size;
+  struct memory_usage * next;
+};
+
 /******************************************************************************/
 struct memory_map MEMORY_MAPPER[257];
+struct memory_usage * MEMORY_USAGE;
 
 /******************************************************************************/
 FILE * generate_memory_file(int size);
@@ -44,7 +52,7 @@ FILE * generate_virtual_memory_file(int size);
 Experiment generate_experiment(FILE *);
 void * perform( void *);
 void memory_request(ProcessDefinition, struct access_request);
-void memory_assign_block(char pid);
+void memory_assign_block(ProcessDefinition);
 
 /******************************************************************************/
 int main( int argc, char *argv[]) {
@@ -59,6 +67,7 @@ int main( int argc, char *argv[]) {
   pthread_t *threads;
   char *line = malloc(128);
   char c;
+  struct memory_usage *memory_usage_cursor;
 
   tracefile_name = argv[1];
   tracefile = fopen( tracefile_name, "r");
@@ -77,6 +86,12 @@ int main( int argc, char *argv[]) {
   MEMORY_MAPPER[0].begin = -1;
   MEMORY_MAPPER[0].end = -1;
 
+  MEMORY_USAGE = malloc(sizeof(* MEMORY_USAGE));
+  MEMORY_USAGE->status = 0;
+  MEMORY_USAGE->begin = 0;
+  MEMORY_USAGE->size = memory_size;
+  MEMORY_USAGE->next = NULL;
+
   experiment = generate_experiment(tracefile);
 
   threads = malloc(sizeof(* threads) * experiment->trials_counter);
@@ -92,7 +107,13 @@ int main( int argc, char *argv[]) {
   while(fscanf(memory_file, "%c", &c) != EOF) {
     printf("%hhd", c);
   }
+  printf("\n");
   fclose(memory_file);
+
+  for(  memory_usage_cursor = MEMORY_USAGE; memory_usage_cursor != NULL;
+        memory_usage_cursor = memory_usage_cursor->next) {
+    printf("[%d, %d] : %d -> ", memory_usage_cursor->begin, memory_usage_cursor->begin + memory_usage_cursor->size, memory_usage_cursor->status);
+  }
 
   return 0;
 }
@@ -165,8 +186,8 @@ Experiment generate_experiment(FILE *tracefile) {
     process_definition->access_requests_counter = access_requests_counter;
     MEMORY_MAPPER[pid].begin = MEMORY_MAPPER[pid - 1].end;
     MEMORY_MAPPER[pid].end = MEMORY_MAPPER[pid].begin + process_definition->b;
-    memory_assign_block(pid);
     process_definition->pid = pid++;
+    memory_assign_block(process_definition);
     experiment->trials[trials_counter] = process_definition;
     trials_counter++;
   }
@@ -211,13 +232,37 @@ void memory_request(ProcessDefinition pd, struct access_request ar) {
   // printf("writing %hhd at position %d\n", pd->pid, MEMORY_MAPPER[pd->pid].begin + ar.p);
 }
 
-void memory_assign_block(char pid) {
+void memory_assign_block(ProcessDefinition pd) {
+  struct memory_usage * memory_usage_cursor, * aux;
   int i;
   FILE * memory_file = fopen("/tmp/ep2.mem", "r+b");
 
-  for( i = MEMORY_MAPPER[pid].begin; i < MEMORY_MAPPER[pid].end; i++) {
+  for( i = MEMORY_MAPPER[pd->pid].begin; i < MEMORY_MAPPER[pd->pid].end; i++) {
     fseek(memory_file, i, SEEK_SET);
-    fwrite(&pid, 1, 1, memory_file);
+    fwrite(&pd->pid, 1, 1, memory_file);
   }
   fclose(memory_file);
+
+  for(  memory_usage_cursor = MEMORY_USAGE; memory_usage_cursor != NULL;
+        memory_usage_cursor = memory_usage_cursor->next) {
+
+    if( memory_usage_cursor->status == 0 &&
+        memory_usage_cursor->size > pd->b) {
+      break;
+    }
+  }
+
+  // if memory_usage_cursor == NULL: use virtual memory
+  if( memory_usage_cursor != NULL) {
+    aux = malloc(sizeof(* aux));
+
+    aux->begin = memory_usage_cursor->begin + pd->b;
+    aux->size = memory_usage_cursor->size - pd->b;
+    aux->status = 0;
+    aux->next = memory_usage_cursor->next;
+
+    memory_usage_cursor->next = aux;
+    memory_usage_cursor->size = pd->b;
+    memory_usage_cursor->status = 1;
+  }
 }
