@@ -9,6 +9,9 @@
 #define PROCESS_NAME_MAX_LENGHT 16
 #define MAX_PROCESS_SIZE 32
 #define MAX_ACCESS_REQUEST 16
+#define VIRTUAL_MEMORY 'V'
+#define MAIN_MEMORY 'M'
+
 struct access_request {
   float t;
   int p;
@@ -50,6 +53,7 @@ void * perform( void *);
 void memory_request(ProcessDefinition, struct access_request);
 void memory_assign_block(ProcessDefinition);
 struct memory_usage * memory_swap(int block_size);
+void write_in_memory(struct memory_usage *, char memory_kind);
 
 /******************************************************************************/
 int main( int argc, char *argv[]) {
@@ -284,18 +288,12 @@ void memory_assign_block(ProcessDefinition pd) {
   memory_usage_cursor->status = 1;
   memory_usage_cursor->pid = pd->pid;
 
-  memory_file = fopen("/tmp/ep2.mem", "r+b");
-  for( i = memory_usage_cursor->begin; i < memory_usage_cursor->begin + memory_usage_cursor->size; i++) {
-    fseek(memory_file, i, SEEK_SET);
-    fwrite(&pd->pid, 1, 1, memory_file);
-  }
-  fclose(memory_file);
+  write_in_memory(memory_usage_cursor, MAIN_MEMORY);
 }
 
 struct memory_usage * memory_swap(int block_size) {
   struct memory_usage * memory_usage_cursor, * virtual_memory_cursor, *aux, *current;
-  int swapped_size, i;
-  FILE * memory_file;
+  int swapped_size;
 
   for(  memory_usage_cursor = MEMORY_USAGE, swapped_size = 0;
         swapped_size < block_size; memory_usage_cursor = current) {
@@ -328,14 +326,25 @@ struct memory_usage * memory_swap(int block_size) {
 
     swapped_size += memory_usage_cursor->size;
 
-    memory_file = fopen("/tmp/ep2.vir", "r+b");
-    for( i = memory_usage_cursor->begin; i < memory_usage_cursor->begin + memory_usage_cursor->size; i++) {
-      fseek(memory_file, i, SEEK_SET);
-      fwrite(&memory_usage_cursor->pid, 1, 1, memory_file);
-    }
-    fclose(memory_file);
+    write_in_memory(memory_usage_cursor, VIRTUAL_MEMORY);
   }
 
-
   return MEMORY_USAGE;
+}
+
+void write_in_memory(struct memory_usage *mu, char memory_kind) {
+  int i;
+  FILE * memory_file;
+  if( memory_kind == VIRTUAL_MEMORY) {
+    memory_file = fopen("/tmp/ep2.vir", "r+b");
+  }
+  else {
+    memory_file = fopen("/tmp/ep2.mem", "r+b");
+  }
+
+  for( i = mu->begin; i < mu->begin + mu->size; i++) {
+    fseek(memory_file, i, SEEK_SET);
+    fwrite(&mu->pid, 1, 1, memory_file);
+  }
+  fclose(memory_file);
 }
