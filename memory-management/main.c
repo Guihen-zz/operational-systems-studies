@@ -37,6 +37,7 @@ struct memory_map {
 
 struct memory_usage {
   char status; /* 0: empty, 1: assigned */
+  char pid;
   int begin;
   int size;
   struct memory_usage * next;
@@ -223,25 +224,26 @@ void * perform(void *argument)
 }
 
 void memory_request(ProcessDefinition pd, struct access_request ar) {
-  FILE * memory_file = fopen("/tmp/ep2.mem", "r+b");
-  fseek(memory_file, MEMORY_MAPPER[pd->pid].begin + ar.p, SEEK_SET);
-  fwrite(&pd->pid, 1, 1, memory_file);
-  fclose(memory_file);
+  FILE * memory_file;
+  struct memory_usage * memory_usage_cursor;
 
-  // printf("%s requested the position %d at time %f\n", pd->name, ar.p, ar.t);
-  // printf("writing %hhd at position %d\n", pd->pid, MEMORY_MAPPER[pd->pid].begin + ar.p);
+  for(  memory_usage_cursor = MEMORY_USAGE;
+        memory_usage_cursor != NULL && memory_usage_cursor->pid == pd->pid;
+        memory_usage_cursor = memory_usage_cursor->next);
+
+  if( memory_usage_cursor != NULL) {
+    memory_file = fopen("/tmp/ep2.mem", "r+b");
+    fseek(memory_file, memory_usage_cursor->begin + ar.p, SEEK_SET);
+    fwrite(&pd->pid, 1, 1, memory_file);
+    fclose(memory_file);
+  }
+  // else get from virtual memory
 }
 
 void memory_assign_block(ProcessDefinition pd) {
   struct memory_usage * memory_usage_cursor, * aux;
+  FILE * memory_file;
   int i;
-  FILE * memory_file = fopen("/tmp/ep2.mem", "r+b");
-
-  for( i = MEMORY_MAPPER[pd->pid].begin; i < MEMORY_MAPPER[pd->pid].end; i++) {
-    fseek(memory_file, i, SEEK_SET);
-    fwrite(&pd->pid, 1, 1, memory_file);
-  }
-  fclose(memory_file);
 
   for(  memory_usage_cursor = MEMORY_USAGE; memory_usage_cursor != NULL;
         memory_usage_cursor = memory_usage_cursor->next) {
@@ -264,5 +266,13 @@ void memory_assign_block(ProcessDefinition pd) {
     memory_usage_cursor->next = aux;
     memory_usage_cursor->size = pd->b;
     memory_usage_cursor->status = 1;
+    memory_usage_cursor->pid = pd->pid;
   }
+
+  memory_file = fopen("/tmp/ep2.mem", "r+b");
+  for( i = memory_usage_cursor->begin; i < memory_usage_cursor->begin + memory_usage_cursor->size; i++) {
+    fseek(memory_file, i, SEEK_SET);
+    fwrite(&pd->pid, 1, 1, memory_file);
+  }
+  fclose(memory_file);
 }
