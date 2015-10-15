@@ -30,11 +30,6 @@ typedef struct experiment {
   int trials_counter;
 } * Experiment;
 
-struct memory_map {
-  int begin;
-  int end;
-};
-
 struct memory_usage {
   char status; /* 0: empty, 1: assigned */
   char pid;
@@ -44,7 +39,6 @@ struct memory_usage {
 };
 
 /******************************************************************************/
-struct memory_map MEMORY_MAPPER[257];
 struct memory_usage * MEMORY_USAGE;
 
 /******************************************************************************/
@@ -83,9 +77,6 @@ int main( int argc, char *argv[]) {
   fclose(memory_file);
   virtual_memory_file = generate_virtual_memory_file(virtual_memory_size);
   fclose(virtual_memory_file);
-
-  MEMORY_MAPPER[0].begin = -1;
-  MEMORY_MAPPER[0].end = -1;
 
   MEMORY_USAGE = malloc(sizeof(* MEMORY_USAGE));
   MEMORY_USAGE->status = 0;
@@ -185,8 +176,6 @@ Experiment generate_experiment(FILE *tracefile) {
     }
 
     process_definition->access_requests_counter = access_requests_counter;
-    MEMORY_MAPPER[pid].begin = MEMORY_MAPPER[pid - 1].end;
-    MEMORY_MAPPER[pid].end = MEMORY_MAPPER[pid].begin + process_definition->b;
     process_definition->pid = pid++;
     memory_assign_block(process_definition);
     experiment->trials[trials_counter] = process_definition;
