@@ -5,7 +5,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-
 #define EMPTY_SPACE 255
 #define PROCESS_NAME_MAX_LENGHT 16
 #define MAX_PROCESS_SIZE 32
@@ -295,7 +294,8 @@ void memory_assign_block(ProcessDefinition pd) {
 
 struct memory_usage * memory_swap(int block_size) {
   struct memory_usage * memory_usage_cursor, * virtual_memory_cursor, *aux, *current;
-  int swapped_size;
+  int swapped_size, i;
+  FILE * memory_file;
 
   for(  memory_usage_cursor = MEMORY_USAGE, swapped_size = 0;
         swapped_size < block_size; memory_usage_cursor = current) {
@@ -303,8 +303,6 @@ struct memory_usage * memory_swap(int block_size) {
           virtual_memory_cursor->status == 1;
           virtual_memory_cursor = virtual_memory_cursor->next);
 
-    printf("%d\n", swapped_size);
-    fflush(stdout);
     current = memory_usage_cursor->next;
     aux = memory_usage_cursor->prev;
     if(aux != NULL) {
@@ -329,7 +327,15 @@ struct memory_usage * memory_swap(int block_size) {
     virtual_memory_cursor->size = virtual_memory_cursor->size - memory_usage_cursor->size;
 
     swapped_size += memory_usage_cursor->size;
+
+    memory_file = fopen("/tmp/ep2.vir", "r+b");
+    for( i = memory_usage_cursor->begin; i < memory_usage_cursor->begin + memory_usage_cursor->size; i++) {
+      fseek(memory_file, i, SEEK_SET);
+      fwrite(&memory_usage_cursor->pid, 1, 1, memory_file);
+    }
+    fclose(memory_file);
   }
+
 
   return MEMORY_USAGE;
 }
