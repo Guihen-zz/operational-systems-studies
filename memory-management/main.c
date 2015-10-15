@@ -36,10 +36,12 @@ struct memory_usage {
   int begin;
   int size;
   struct memory_usage * next;
+  struct memory_usage * prev;
 };
 
 /******************************************************************************/
 struct memory_usage * MEMORY_USAGE;
+struct memory_usage * VIRTUAL_MEMORY_USAGE;
 
 /******************************************************************************/
 FILE * generate_memory_file(int size);
@@ -48,6 +50,7 @@ Experiment generate_experiment(FILE *);
 void * perform( void *);
 void memory_request(ProcessDefinition, struct access_request);
 void memory_assign_block(ProcessDefinition);
+struct memory_usage * memory_swap(int block_size);
 
 /******************************************************************************/
 int main( int argc, char *argv[]) {
@@ -83,6 +86,14 @@ int main( int argc, char *argv[]) {
   MEMORY_USAGE->begin = 0;
   MEMORY_USAGE->size = memory_size;
   MEMORY_USAGE->next = NULL;
+  MEMORY_USAGE->prev = NULL;
+
+  VIRTUAL_MEMORY_USAGE = malloc(sizeof(* VIRTUAL_MEMORY_USAGE));
+  VIRTUAL_MEMORY_USAGE->status = 0;
+  VIRTUAL_MEMORY_USAGE->begin = 0;
+  VIRTUAL_MEMORY_USAGE->size = virtual_memory_size;
+  VIRTUAL_MEMORY_USAGE->next = NULL;
+  VIRTUAL_MEMORY_USAGE->prev = NULL;
 
   experiment = generate_experiment(tracefile);
 
@@ -102,10 +113,24 @@ int main( int argc, char *argv[]) {
   printf("\n");
   fclose(memory_file);
 
+  memory_file = fopen("/tmp/ep2.vir", "rb");
+  while(fscanf(memory_file, "%c", &c) != EOF) {
+    printf("%hhd", c);
+  }
+  printf("\n");
+  fclose(memory_file);
+
   for(  memory_usage_cursor = MEMORY_USAGE; memory_usage_cursor != NULL;
         memory_usage_cursor = memory_usage_cursor->next) {
     printf("[%d, %d] : %d -> ", memory_usage_cursor->begin, memory_usage_cursor->begin + memory_usage_cursor->size, memory_usage_cursor->status);
   }
+  printf("\n");
+
+  for(  memory_usage_cursor = VIRTUAL_MEMORY_USAGE; memory_usage_cursor != NULL;
+        memory_usage_cursor = memory_usage_cursor->next) {
+    printf("[%d, %d] : %d -> ", memory_usage_cursor->begin, memory_usage_cursor->begin + memory_usage_cursor->size, memory_usage_cursor->status);
+  }
+  printf("\n");
 
   return 0;
 }
@@ -251,11 +276,15 @@ void memory_assign_block(ProcessDefinition pd) {
     aux->size = memory_usage_cursor->size - pd->b;
     aux->status = 0;
     aux->next = memory_usage_cursor->next;
+    aux->prev = memory_usage_cursor;
 
     memory_usage_cursor->next = aux;
     memory_usage_cursor->size = pd->b;
     memory_usage_cursor->status = 1;
     memory_usage_cursor->pid = pd->pid;
+  }
+  else {
+    memory_usage_cursor = memory_swap(pd->b);
   }
 
   memory_file = fopen("/tmp/ep2.mem", "r+b");
@@ -264,4 +293,35 @@ void memory_assign_block(ProcessDefinition pd) {
     fwrite(&pd->pid, 1, 1, memory_file);
   }
   fclose(memory_file);
+}
+
+struct memory_usage * memory_swap(int block_size) {
+  struct memory_usage * memory_usage_cursor, * virtual_memory_cursor, *aux;
+  int swapped_size;
+
+  for(  memory_usage_cursor = MEMORY_USAGE, swapped_size = 0;
+        swapped_size < block_size;
+        memory_usage_cursor = memory_usage_cursor->next) {
+    for(  virtual_memory_cursor = VIRTUAL_MEMORY_USAGE;
+          virtual_memory_cursor->status == 0;
+          virtual_memory_cursor = virtual_memory_cursor->next);
+
+    aux = memory_usage_cursor->prev;
+    aux->size = aux->size + memory_usage_cursor->size;
+    aux->next = memory_usage_cursor->next;
+    memory_usage_cursor->next->prev = aux;
+
+    aux = virtual_memory_cursor->prev;
+    aux->next = memory_usage_cursor;
+    memory_usage_cursor->prev = aux;
+    memory_usage_cursor->next = virtual_memory_cursor;
+    virtual_memory_cursor->prev = memory_usage_cursor;
+    memory_usage_cursor->begin = virtual_memory_cursor->begin;
+    virtual_memory_cursor->begin = memory_usage_cursor->begin + memory_usage_cursor->size;
+    virtual_memory_cursor->size = virtual_memory_cursor->size - memory_usage_cursor->size;
+
+    swapped_size += memory_usage_cursor->size;
+  }
+
+  return MEMORY_USAGE;
 }
