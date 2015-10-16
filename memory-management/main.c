@@ -9,8 +9,8 @@
 #define PROCESS_NAME_MAX_LENGHT 16
 #define MAX_PROCESS_SIZE 32
 #define MAX_ACCESS_REQUEST 16
-#define VIRTUAL_MEMORY 'V'
-#define MAIN_MEMORY 'M'
+#define VIRTUAL_MEMORY_FLAG 'V'
+#define MAIN_MEMORY_FLAG 'M'
 
 struct access_request {
   float t;
@@ -275,8 +275,6 @@ void memory_assign_block(ProcessDefinition pd) {
   // if memory_usage_cursor == NULL: use virtual memory
   if( memory_usage_cursor == NULL) {
     memory_usage_cursor = memory_swap(pd->b);
-    printf("FUCK!\n");
-    exit(1);
   }
 
   aux = malloc(sizeof(* aux));
@@ -292,7 +290,7 @@ void memory_assign_block(ProcessDefinition pd) {
   memory_usage_cursor->status = 1;
   memory_usage_cursor->pid = pd->pid;
 
-  write_in_memory(memory_usage_cursor, MAIN_MEMORY);
+  write_in_memory(memory_usage_cursor, MAIN_MEMORY_FLAG);
 }
 
 struct memory_usage * memory_swap(int block_size) {
@@ -300,10 +298,17 @@ struct memory_usage * memory_swap(int block_size) {
   int swapped_size;
 
   for(  memory_usage_cursor = MEMORY_USAGE, swapped_size = 0;
-        swapped_size < block_size; memory_usage_cursor = current) {
+        swapped_size < block_size;
+        memory_usage_cursor = current) {
+
     for(  virtual_memory_cursor = VIRTUAL_MEMORY_USAGE;
           virtual_memory_cursor->status == 1;
           virtual_memory_cursor = virtual_memory_cursor->next);
+
+    if( memory_usage_cursor->status == 0) {
+      swapped_size += memory_usage_cursor->size;
+      continue;
+    }
 
     current = memory_usage_cursor->next;
     aux = memory_usage_cursor->prev;
@@ -321,6 +326,7 @@ struct memory_usage * memory_swap(int block_size) {
       aux->next = memory_usage_cursor;
     }
 
+    /* virtual_memory_cursor: is a blank memory page */
     memory_usage_cursor->prev = aux;
     memory_usage_cursor->next = virtual_memory_cursor;
     virtual_memory_cursor->prev = memory_usage_cursor;
@@ -329,8 +335,7 @@ struct memory_usage * memory_swap(int block_size) {
     virtual_memory_cursor->size = virtual_memory_cursor->size - memory_usage_cursor->size;
 
     swapped_size += memory_usage_cursor->size;
-
-    write_in_memory(memory_usage_cursor, VIRTUAL_MEMORY);
+    write_in_memory(memory_usage_cursor, VIRTUAL_MEMORY_FLAG);
   }
 
   return MEMORY_USAGE;
@@ -339,8 +344,10 @@ struct memory_usage * memory_swap(int block_size) {
 void write_in_memory(struct memory_usage *mu, char memory_kind) {
   int i;
   FILE * memory_file;
-  if( memory_kind == VIRTUAL_MEMORY) {
+  if( memory_kind == VIRTUAL_MEMORY_FLAG) {
     memory_file = fopen("/tmp/ep2.vir", "r+b");
+    printf("writing %hhd begining at %d and ending at %d\n", mu->pid, mu->begin, mu->begin + mu->size);
+    fflush(stdout);
   }
   else {
     memory_file = fopen("/tmp/ep2.mem", "r+b");
