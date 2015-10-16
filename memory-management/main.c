@@ -262,7 +262,8 @@ void memory_assign_block(ProcessDefinition pd) {
   FILE * memory_file;
   int i;
 
-  for(  memory_usage_cursor = MEMORY_USAGE; memory_usage_cursor != NULL;
+  for(  memory_usage_cursor = MEMORY_USAGE;
+        memory_usage_cursor != NULL;
         memory_usage_cursor = memory_usage_cursor->next) {
 
     if( memory_usage_cursor->status == 0 &&
@@ -274,7 +275,10 @@ void memory_assign_block(ProcessDefinition pd) {
   // if memory_usage_cursor == NULL: use virtual memory
   if( memory_usage_cursor == NULL) {
     memory_usage_cursor = memory_swap(pd->b);
+    printf("FUCK!\n");
+    exit(1);
   }
+
   aux = malloc(sizeof(* aux));
 
   aux->begin = memory_usage_cursor->begin + pd->b;
