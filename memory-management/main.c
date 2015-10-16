@@ -245,7 +245,7 @@ void memory_request(ProcessDefinition pd, struct access_request ar) {
   struct memory_usage * memory_usage_cursor;
 
   for(  memory_usage_cursor = MEMORY_USAGE;
-        memory_usage_cursor != NULL && memory_usage_cursor->pid == pd->pid;
+        memory_usage_cursor != NULL && memory_usage_cursor->pid != pd->pid;
         memory_usage_cursor = memory_usage_cursor->next);
 
   if( memory_usage_cursor != NULL) {
