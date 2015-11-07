@@ -1,4 +1,4 @@
-require_relative './commands/find.rb'
+Dir["./commands/*.rb"].each { |file| require_relative file }
 
 class CommandExecutor
   def initialize(input)
@@ -15,6 +15,10 @@ class CommandExecutor
   private
     def execute_command(command, args)
       class_name = command[0, 1].upcase + command[1 .. -1]
-      Object.const_get(class_name).new(args).execute
+      begin
+        Commands.const_get(class_name).new(args).execute
+      rescue Commands::CallToExit
+        puts 'Exiting...'
+      end
     end
 end
