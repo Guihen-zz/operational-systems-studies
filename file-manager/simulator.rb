@@ -6,8 +6,17 @@ class Simulator
   end
 
   def start
-    print "[ep3]: "
-    line = @reader.readline
-    CommandExecutor.new(line).execute
+    loop do
+      print "[ep3]: "
+      line = @reader.readline
+      begin
+        CommandExecutor.new(line).execute
+      rescue Commands::CallToExit
+        puts 'Exiting...'
+        break
+      rescue Commands::InvalidArgumentsError
+        puts 'Invalid agurments'
+      end
+    end
   end
 end

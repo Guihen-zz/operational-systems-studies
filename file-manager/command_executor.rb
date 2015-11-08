@@ -6,19 +6,15 @@ class CommandExecutor
   end
 
   def execute
-    command = @input.match(/(?<command>\w+) (?<args>.*)/)
+    command = @input.match(/(?<command>\w+)\s*(?<args>.*)/)
     if command
       execute_command(command[:command], command[:args])
     end
   end
 
   private
-    def execute_command(command, args)
+    def execute_command(command, args= nil)
       class_name = command[0, 1].upcase + command[1 .. -1]
-      begin
-        Commands.const_get(class_name).new(args).execute
-      rescue Commands::CallToExit
-        puts 'Exiting...'
-      end
+      Commands.const_get(class_name).new(args).execute
     end
 end
