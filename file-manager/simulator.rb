@@ -1,4 +1,5 @@
 require_relative './command_executor.rb'
+require_relative './file_manager.rb'
 
 class Simulator
   def initialize(input_reader)
@@ -6,6 +7,10 @@ class Simulator
   end
 
   def start
+    file_manager = FileManager.new('./data/partition')
+    file_manager.partition_size = 100000000 # 100MB
+    file_manager.start_free_space_management
+
     loop do
       print "[ep3]: "
       line = @reader.readline
