@@ -8,8 +8,9 @@ class Simulator
 
   def start
     file_manager = FileManager.new('./data/partition')
-    file_manager.partition_size = 100000000 # 100MB
     file_manager.start_free_space_management
+    file_manager.start_inodes_sector
+    file_manager.start_root_file
 
     loop do
       print "[ep3]: "
