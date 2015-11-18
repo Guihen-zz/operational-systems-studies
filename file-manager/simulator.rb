@@ -1,5 +1,6 @@
 require_relative './command_executor.rb'
 require_relative './file_manager.rb'
+require_relative './commands/command.rb'
 
 class Simulator
   def initialize(input_reader)
@@ -15,12 +16,12 @@ class Simulator
       print "[ep3]: "
       line = @reader.readline
       begin
-        CommandExecutor.new(line).execute
+        CommandExecutor.new(line).execute(file_manager)
       rescue Commands::CallToExit
         puts 'Exiting...'
         break
-      rescue Commands::InvalidArgumentsError
-        puts 'Invalid agurments'
+      # rescue Commands::InvalidArgumentsError
+      #   puts 'Invalid agurments'
       end
     end
   end

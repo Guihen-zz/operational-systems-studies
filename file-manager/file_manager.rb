@@ -6,8 +6,8 @@ class FileManager
 
   def initialize(partition_name)
     @partition_name = partition_name
-    @partition_size = 32 # 100000000
-    @block_size = 4 # 4000
+    @partition_size = 100000000
+    @block_size = 4000
     @inodes_index = 0
   end
 
@@ -18,14 +18,41 @@ class FileManager
   end
 
   def start_root_file
+    root_block = new_block
+    use_block(root_block)
+    @root_directory = CustomDirectory.new(partition_name, root_block)
+    @root_directory.create('/')
+  end
+
+  def new_block
+    block_index = -1
+
     File.open(partition_name, 'r+b') do |file|
-      file.seek(root_file_offset)
-      @root_directory = CustomDirectory.new(file)
-      @root_directory.create('/')
+      file.seek(bitmap_offset)
+      bitmap_size.times do |index|
+        zero_to_empty_space = file.getc
+        if zero_to_empty_space == '1'
+          block_index = root_file_offset + (index * block_size)
+          break
+        end
+      end
+    end
+
+    block_index
+  end
+
+  def use_block(block_index)
+    index = (block_index - root_file_offset) / block_size
+    File.open(partition_name, 'r+b') do |file|
+      file.seek(index)
+      file.write('0')
     end
   end
 
   private
+    def bitmap_offset
+      0
+    end
 
     def bitmap_size
       partition_size / block_size

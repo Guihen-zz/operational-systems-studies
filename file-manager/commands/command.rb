@@ -9,11 +9,15 @@ module Commands
       @args = args
     end
 
-    def execute
-      raise AbstractMethodError.new
+    def execute_with(file_manager)
+      @file_manager = file_manager
+      execute
     end
 
     protected
+      def execute
+        raise AbstractMethodError.new
+      end
 
       def get_two_parmeters!
         parameters = args.scan(/\S+/)
