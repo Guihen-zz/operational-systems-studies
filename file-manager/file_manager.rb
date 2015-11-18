@@ -1,9 +1,8 @@
-require_relative './file_manager_components/inode.rb'
+require_relative './file_manager_components/custom_directory.rb'
 
 class FileManager
-  NAMESIZE = 14
-  INODESAVAILABLE = 500
   attr_accessor :partition_size, :partition_name, :block_size, :inodes_index
+  attr_reader :root_directory
 
   def initialize(partition_name)
     @partition_name = partition_name
@@ -18,17 +17,11 @@ class FileManager
     end
   end
 
-  def start_inodes_sector
-    File.open(partition_name, 'r+b') do |file|
-      file.seek(inodes_file_offset)
-      INODESAVAILABLE.times { FileManagerComponents::Inode.empty_inode(file) }
-    end
-  end
-
   def start_root_file
     File.open(partition_name, 'r+b') do |file|
       file.seek(root_file_offset)
-      file.write('/')
+      @root_directory = CustomDirectory.new(file)
+      @root_directory.create('/')
     end
   end
 
@@ -38,15 +31,7 @@ class FileManager
       partition_size / block_size
     end
 
-    def inodes_file_offset
-      bitmap_size
-    end
-
-    def inodes_file_size
-      FileManagerComponents::Inode::SIZE * INODESAVAILABLE
-    end
-
     def root_file_offset
-      bitmap_size + inodes_file_size
+      bitmap_size
     end
 end
