@@ -2,6 +2,8 @@ require 'date'
 require 'debugger'
 
 class CustomDirectory
+  class FileNotFoundError < RuntimeError; end
+
   EMPTYDIRSIZE =  8 # next block link
   CONTENTDIRSIZE = 64 # 8 (filesize) + 6 (filename) + {ddmmaaaahhmmss}(14) * 3 + 8 (next_block_link)
   EMPTYLINKSYMBOL = '?'
@@ -17,22 +19,41 @@ class CustomDirectory
   def initialize(partition_name, parent_directory)
     @partition_name = partition_name
     @parent_directory = parent_directory
-    @size = empty_dir_size
-    @next_link = empty_link
   end
 
   def create(name, block_index)
     set_timestamps
+    @size = empty_dir_size
+    @next_link = empty_link
     @name = name.rjust(6)
     @block_index = block_index.to_s.rjust(8, '0')
-
     File.open(partition_name, 'r+b') do |file|
       file.seek(block_index)
-      (4000-8).times { file.write(EMPTYBYTESYMBOL) }
+      (4000 - 8).times { file.write(EMPTYBYTESYMBOL) }
       file.write(empty_link)
     end
 
     @parent_directory.append(self)
+  end
+
+  def find(file_name)
+    File.open(partition_name, 'r+b') do |file|
+      (4000 / CONTENTDIRSIZE).times do |i|
+        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        file_attributes = attributes(file)
+        if file_attributes[:name].strip == file_name
+          founded_directory = CustomDirectory.new(@partition_name, self)
+          file_attributes.each do |attribute, value|
+            founded_directory.send("#{attribute}=", value)
+          end
+          return founded_directory
+        end
+
+        file.rewind
+      end
+    end
+
+    raise FileNotFoundError.new
   end
 
   def append(directory)
@@ -49,15 +70,22 @@ class CustomDirectory
   end
 
   protected
+    def attributes(file)
+      {
+        size: file.gets(8),
+        name: file.gets(6),
+        created_at: file.gets(14),
+        updated_at: file.gets(14),
+        touched_at: file.gets(14),
+        block_index: file.gets(8)
+      }
+    end
+
     def set_timestamps
       date = DateTime.now.strftime("%Y%m%d%H%M%S")
       @created_at = date
       @updated_at = date
       @touched_at = date
-    end
-
-    def absolute_path_to_file_as_array
-      @name.scan(/(\/[^\/]+)/)
     end
 
     def empty_dir_size
