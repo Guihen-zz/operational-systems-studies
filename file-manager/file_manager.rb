@@ -1,8 +1,10 @@
 require_relative './file_manager_components/custom_directory.rb'
+require_relative './file_manager_components/root_directory.rb'
 
 class FileManager
   attr_accessor :partition_size, :partition_name, :block_size, :inodes_index
   attr_reader :root_directory
+  NULLBIT = ' '
 
   def initialize(partition_name)
     @partition_name = partition_name
@@ -18,10 +20,8 @@ class FileManager
   end
 
   def start_root_file
-    root_block = new_block
-    use_block(root_block)
-    @root_directory = CustomDirectory.new(partition_name, root_block)
-    @root_directory.create('/')
+    @root_directory = RootDirectory.new(partition_name, root_block)
+    @root_directory.create(new_block)
   end
 
   def new_block
@@ -32,21 +32,16 @@ class FileManager
       bitmap_size.times do |index|
         zero_to_empty_space = file.getc
         if zero_to_empty_space == '1'
-          block_index = root_file_offset + (index * block_size)
+          block_index = user_data_offset + (index * block_size)
+          file.rewind
+          file.seek(index)
+          file.write(0)
           break
         end
       end
     end
 
     block_index
-  end
-
-  def use_block(block_index)
-    index = (block_index - root_file_offset) / block_size
-    File.open(partition_name, 'r+b') do |file|
-      file.seek(index)
-      file.write('0')
-    end
   end
 
   private
@@ -58,7 +53,11 @@ class FileManager
       partition_size / block_size
     end
 
-    def root_file_offset
+    def root_block
       bitmap_size
+    end
+
+    def user_data_offset
+      root_block + RootDirectory::SIZE
     end
 end
