@@ -68,7 +68,7 @@ class CustomDirectory
       file.write(directory.block_index)
     end
 
-    @parent_directory.update_file_size(@name.strip, @size.to_i + CONTENTDIRSIZE) and reload
+    @parent_directory.update_file_size_by(@name.strip, CONTENTDIRSIZE) and reload
   end
 
   def destroy
@@ -108,16 +108,17 @@ class CustomDirectory
     all_files.reject { |file| file[:name] == (EMPTYBYTESYMBOL * FILENAMESIZE) }
   end
 
-  def update_file_size(file_name, new_size)
+  def update_file_size_by(file_name, increased_by)
     File.open(partition_name, 'r+b') do |file|
       (4000 / CONTENTDIRSIZE).times do |i|
         file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
+          former_size = file_attributes[:size]
           file.rewind
           file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
-          file.write(new_size.to_s.rjust(8, '0'))
-          return true
+          file.write((former_size.to_i + increased_by).to_s.rjust(8, '0'))
+          return @parent_directory.update_file_size_by(@name, increased_by) && reload
         end
 
         file.rewind

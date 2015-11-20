@@ -49,14 +49,17 @@ class RootDirectory < CustomDirectory
     root_directory
   end
 
-  def update_file_size(file_name, new_size)
+  def update_file_size_by(file_name, increased_by)
     return super if file_name.strip != '/'
 
     File.open(partition_name, 'r+b') do |file|
       file.seek(@metadata_index.to_i)
-      file.write(new_size.to_s.rjust(8, '0'))
+      former_size = file.gets(8).to_i
+      file.seek(@metadata_index.to_i)
+      file.write((former_size + increased_by).to_s.rjust(8, '0'))
     end
 
+    reload
     true
   end
 end
