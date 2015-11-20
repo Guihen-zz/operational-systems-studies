@@ -59,16 +59,24 @@ class CustomDirectory
 
   def append(directory)
     File.open(partition_name, 'r+b') do |file|
-      file.seek(@block_index.to_i + @size.to_i - 8)
-      file.write(directory.size)
-      file.write(directory.name) # name with size 14
-      file.write(directory.created_at)
-      file.write(directory.updated_at)
-      file.write(directory.touched_at)
-      file.write(directory.block_index)
+      (4000 / CONTENTDIRSIZE).times do |i|
+        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        if file.getc == EMPTYBYTESYMBOL
+          file.rewind
+          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+          file.write(directory.size)
+          file.write(directory.name)
+          file.write(directory.created_at)
+          file.write(directory.updated_at)
+          file.write(directory.touched_at)
+          file.write(directory.block_index)
+          return @parent_directory.update_file_size_by(@name.strip, CONTENTDIRSIZE) && reload
+        end
+        file.rewind
+      end
     end
 
-    @parent_directory.update_file_size_by(@name.strip, CONTENTDIRSIZE) and reload
+    false
   end
 
   def destroy
@@ -136,6 +144,8 @@ class CustomDirectory
       @created_at = self_object.created_at
       @updated_at = self_object.updated_at
       @touched_at = self_object.touched_at
+
+      true
     end
 
     def attributes_of(file)

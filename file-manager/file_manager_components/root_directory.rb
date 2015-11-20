@@ -8,7 +8,7 @@ class RootDirectory < CustomDirectory
     @metadata_index = metadata_index.to_s.rjust(8, '0')
     @size = empty_dir_size
     @name = '/'.rjust(6)
-    @parent_directory = self
+    @parent_directory = self # trick to append and other methods that uses recursion
   end
 
   def create(block_index)
