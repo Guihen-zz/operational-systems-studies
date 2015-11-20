@@ -68,7 +68,7 @@ class CustomDirectory
       file.write(directory.block_index)
     end
 
-    update_file_size(@name.strip, @size.to_i + CONTENTDIRSIZE) and reload
+    @parent_directory.update_file_size(@name.strip, @size.to_i + CONTENTDIRSIZE) and reload
   end
 
   def destroy
