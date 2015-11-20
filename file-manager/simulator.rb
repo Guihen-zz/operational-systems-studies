@@ -18,10 +18,9 @@ class Simulator
       begin
         CommandExecutor.new(line).execute(file_manager)
       rescue Commands::CallToExit
-        puts 'Exiting...'
         break
-      # rescue Commands::InvalidArgumentsError
-      #   puts 'Invalid agurments'
+      rescue CustomDirectory::FileNotFoundError
+        puts "Comando invalido: arquivo ou diretorio nao encontrado."
       end
     end
   end

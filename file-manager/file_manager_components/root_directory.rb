@@ -1,4 +1,6 @@
 class RootDirectory < CustomDirectory
+  class NotAllowedActionError < RuntimeError; end
+
   SIZE = 56
 
   def initialize(partition_name, metadata_index)
@@ -23,5 +25,9 @@ class RootDirectory < CustomDirectory
       (4000 - 8).times { file.write(EMPTYBYTESYMBOL) }
       file.write(empty_link)
     end
+  end
+
+  def destroy
+    raise NotAllowedActionError.new
   end
 end

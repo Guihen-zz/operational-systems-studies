@@ -69,6 +69,31 @@ class CustomDirectory
     @size = (@size.to_i + CONTENTDIRSIZE).to_s
   end
 
+  def destroy
+    File.open(partition_name, 'r+b') do |file|
+      file.seek(@block_index.to_i)
+      4000.times { file.write(EMPTYBYTESYMBOL) }
+    end
+    @parent_directory.unappend(self)
+
+    self.freeze
+  end
+
+  def unappend(directory)
+    File.open(partition_name, 'r+b') do |file|
+      (4000 / CONTENTDIRSIZE).times do |i|
+        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        file_attributes = attributes(file)
+        if file_attributes[:name] == directory.name
+          file.rewind
+          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+          CONTENTDIRSIZE.times { file.write(EMPTYBYTESYMBOL) }
+          break
+        end
+      end
+    end
+  end
+
   protected
     def attributes(file)
       {

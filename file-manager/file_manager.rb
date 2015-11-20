@@ -44,6 +44,14 @@ class FileManager
     block_index
   end
 
+  def free(block_index)
+    File.open(partition_name, 'r+b') do |file|
+      bitmap_index = (block_index - user_data_offset) / block_size
+      file.seek(bitmap_index)
+      file.write(1)
+    end
+  end
+
   private
     def bitmap_offset
       0
