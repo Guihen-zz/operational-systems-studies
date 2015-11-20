@@ -8,6 +8,7 @@ class CustomDirectory
   CONTENTDIRSIZE = 64 # 8 (filesize) + 6 (filename) + {ddmmaaaahhmmss}(14) * 3 + 8 (next_block_link)
   EMPTYLINKSYMBOL = '?'
   EMPTYBYTESYMBOL = '_'
+  FILENAMESIZE = 6
 
   attr_accessor :partition_name, # the partition name where the filter will be stored
     :parent_directory, # the folder it is inside
@@ -92,6 +93,18 @@ class CustomDirectory
         end
       end
     end
+  end
+
+  def all
+    all_files = []
+    File.open(partition_name, 'r+b') do |file|
+      (4000 / CONTENTDIRSIZE).times do |i|
+        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        all_files << attributes(file)
+      end
+    end
+
+    all_files.reject { |file| file[:name] == (EMPTYBYTESYMBOL * FILENAMESIZE) }
   end
 
   protected
