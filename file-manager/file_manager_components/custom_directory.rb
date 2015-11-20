@@ -1,21 +1,14 @@
+require_relative './custom_file.rb'
 require 'date'
 require 'debugger'
 
-class CustomDirectory
+class CustomDirectory < CustomFile
   class FileNotFoundError < RuntimeError; end
 
   EMPTYDIRSIZE =  8 # next block link
   CONTENTDIRSIZE = 64 # 8 (filesize) + 6 (filename) + {ddmmaaaahhmmss}(14) * 3 + 8 (next_block_link)
-  EMPTYLINKSYMBOL = '?'
-  EMPTYBYTESYMBOL = '_'
-  FILENAMESIZE = 6
 
-  attr_accessor :partition_name, # the partition name where the filter will be stored
-    :parent_directory, # the folder it is inside
-    :name, :size, # file name and size
-    :created_at, :updated_at, :touched_at, # timestamps
-    :block_index, # the current block index
-    :next_block_link # the next block it uses if the current block is full
+  attr_accessor :parent_directory # the folder it is inside
 
   def initialize(partition_name, parent_directory)
     @partition_name = partition_name
@@ -23,17 +16,7 @@ class CustomDirectory
   end
 
   def create(name, block_index)
-    set_timestamps
-    @size = empty_dir_size
-    @next_link = empty_link
-    @name = name.rjust(6)
-    @block_index = block_index.to_s.rjust(8, '0')
-    File.open(partition_name, 'r+b') do |file|
-      file.seek(block_index)
-      (4000 - 8).times { file.write(EMPTYBYTESYMBOL) }
-      file.write(empty_link)
-    end
-
+    super
     @parent_directory.append(self)
   end
 
@@ -57,22 +40,22 @@ class CustomDirectory
     raise FileNotFoundError.new
   end
 
-  def append(directory)
-    File.open(partition_name, 'r+b') do |file|
+  def append(custom_file)
+    File.open(partition_name, 'r+b') do |file_handler|
       (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
-        if file.getc == EMPTYBYTESYMBOL
-          file.rewind
-          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
-          file.write(directory.size)
-          file.write(directory.name)
-          file.write(directory.created_at)
-          file.write(directory.updated_at)
-          file.write(directory.touched_at)
-          file.write(directory.block_index)
-          return @parent_directory.update_file_size_by(@name.strip, CONTENTDIRSIZE) && reload
+        file_handler.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        if file_handler.getc == EMPTYBYTESYMBOL
+          file_handler.rewind
+          file_handler.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+          file_handler.write(custom_file.size)
+          file_handler.write(custom_file.name)
+          file_handler.write(custom_file.created_at)
+          file_handler.write(custom_file.updated_at)
+          file_handler.write(custom_file.touched_at)
+          file_handler.write(custom_file.block_index)
+          return @parent_directory.update_file_size_by(@name.strip, custom_file.content_size) && reload
         end
-        file.rewind
+        file_handler.rewind
       end
     end
 
@@ -137,6 +120,11 @@ class CustomDirectory
   end
 
   protected
+
+    def content_size
+      CONTENTDIRSIZE
+    end
+
     def reload
       self_object = @parent_directory.find(name.strip)
 
@@ -159,18 +147,7 @@ class CustomDirectory
       }
     end
 
-    def set_timestamps
-      date = DateTime.now.strftime("%Y%m%d%H%M%S")
-      @created_at = date
-      @updated_at = date
-      @touched_at = date
-    end
-
-    def empty_dir_size
+    def empty_size
       EMPTYDIRSIZE.to_s.rjust(8, '0')
-    end
-
-    def empty_link
-      EMPTYLINKSYMBOL * 8
     end
 end
