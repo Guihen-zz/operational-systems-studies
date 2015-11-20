@@ -98,7 +98,7 @@ class CustomDirectory
           file.rewind
           file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
           CONTENTDIRSIZE.times { file.write(EMPTYBYTESYMBOL) }
-          break
+          return @parent_directory.update_file_size_by(@name.strip, - CONTENTDIRSIZE) && reload
         end
       end
     end
@@ -126,7 +126,7 @@ class CustomDirectory
           file.rewind
           file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
           file.write((former_size.to_i + increased_by).to_s.rjust(8, '0'))
-          return @parent_directory.update_file_size_by(@name, increased_by) && reload
+          return @parent_directory.update_file_size_by(@name.strip, increased_by) && reload
         end
 
         file.rewind
