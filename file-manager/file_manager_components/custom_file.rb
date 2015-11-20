@@ -1,6 +1,8 @@
 require 'date'
 
 class CustomFile
+  class FileNotFoundError < RuntimeError; end
+
   EMPTYLINKSYMBOL = '?'
   EMPTYBYTESYMBOL = '_'
   FILENAMESIZE = 6
@@ -12,9 +14,10 @@ class CustomFile
     :block_index, # the current block index
     :next_block_link # the next block it uses if the current block is full
 
-  def initialize(partition_name)
-    @partition_name = partition_name
-  end
+    def initialize(partition_name)
+      @partition_name = partition_name
+    end
+
 
   def create(name, block_index)
     set_timestamps
@@ -44,9 +47,13 @@ class CustomFile
     end
 
     def set_timestamps
-      date = DateTime.now.strftime("%Y%m%d%H%M%S")
+      date = date_time_now
       @created_at = date
       @updated_at = date
       @touched_at = date
+    end
+
+    def date_time_now
+      DateTime.now.strftime("%Y%m%d%H%M%S")
     end
 end

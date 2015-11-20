@@ -6,9 +6,13 @@ module Commands
       file_name = path.pop
       directory = directory(path)
 
-      new_file = CustomFile.new(@file_manager.partition_name)
-      new_file.create(file_name, @file_manager.new_block)
-      directory.append(new_file)
+      begin
+        directory.touch!(file_name)
+      rescue CustomFile::FileNotFoundError
+        new_file = CustomFile.new(@file_manager.partition_name)
+        new_file.create(file_name, @file_manager.new_block)
+        directory.append(new_file)
+      end
     end
   end
 end

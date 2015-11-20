@@ -3,8 +3,6 @@ require 'date'
 require 'debugger'
 
 class CustomDirectory < CustomFile
-  class FileNotFoundError < RuntimeError; end
-
   EMPTYDIRSIZE =  8 # next block link
   CONTENTDIRSIZE = 64 # 8 (filesize) + 6 (filename) + {ddmmaaaahhmmss}(14) * 3 + 8 (next_block_link)
 
@@ -110,6 +108,56 @@ class CustomDirectory < CustomFile
           file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
           file.write((former_size.to_i + increased_by).to_s.rjust(8, '0'))
           return @parent_directory.update_file_size_by(@name.strip, increased_by) && reload
+        end
+
+        file.rewind
+      end
+    end
+
+    false
+  end
+
+  def touch!(file_name)
+    File.open(partition_name, 'r+b') do |file|
+      (4000 / CONTENTDIRSIZE).times do |i|
+        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        file_attributes = attributes_of(file)
+        if file_attributes[:name].strip == file_name
+          founded_directory = CustomDirectory.new(@partition_name, self)
+          file_attributes.each do |attribute, value|
+            founded_directory.send("#{attribute}=", value)
+          end
+
+          return update_attributes(file_name, { touched_at: date_time_now })
+        end
+
+        file.rewind
+      end
+    end
+
+    raise FileNotFoundError.new
+  end
+
+  def update_attributes(file_name, updated_attributes)
+    File.open(partition_name, 'r+b') do |file|
+      (4000 / CONTENTDIRSIZE).times do |i|
+        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+        file_attributes = attributes_of(file)
+        if file_attributes[:name].strip == file_name
+          file.rewind
+          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+          attributes_format = [ [ :size, 8 ], [ :name, FILENAMESIZE ],
+            [ :created_at, 14 ], [ :updated_at, 14 ], [ :touched_at, 14 ] ]
+
+          attributes_format.each do |attribute_format|
+            if updated_attributes.has_key?(attribute_format.first)
+              file.write(updated_attributes[attribute_format.first].to_s.rjust(attribute_format.last, '0'))
+            else
+              file.seek(attribute_format.last, IO::SEEK_CUR)
+            end
+          end
+
+          return true
         end
 
         file.rewind
