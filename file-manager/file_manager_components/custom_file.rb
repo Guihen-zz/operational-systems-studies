@@ -7,6 +7,7 @@ class CustomFile
   EMPTY_LINKS_SYMBOL = '?'
   EMPTY_BYTES_SYMBOL = '_'
   FILENAME_SIZE = 11
+  MAGIC_NUMBER = '0'
 
   attr_accessor :partition_name, # the partition name where the filter will be stored
     :name, :size, # file name and size
@@ -17,7 +18,7 @@ class CustomFile
 
   def initialize(partition_name)
     @partition_name = partition_name
-    @magic_number = 0
+    @magic_number = MAGIC_NUMBER
   end
 
   def create(name, block_index)

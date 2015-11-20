@@ -9,7 +9,7 @@ class RootDirectory < CustomDirectory
     @size = empty_size
     @name = '/'.rjust(6)
     @parent_directory = self # trick to append and other methods that uses recursion
-    @magic_number = 1
+    @magic_number = MAGIC_NUMBER
   end
 
   def create(block_index)

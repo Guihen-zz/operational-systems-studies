@@ -4,13 +4,14 @@ require 'debugger'
 
 class CustomDirectory < CustomFile
   ATTRIBUTES_DATA_SIZE = 70 # magic_number (1) + file_size (8) + file_name (11) + timestamps{ddmmaaaahhmmss} (14) * 3 + next_block_link (8)
+  MAGIC_NUMBER = '1'
 
   attr_accessor :parent_directory # the folder it is inside
 
   def initialize(partition_name, parent_directory)
     @partition_name = partition_name
     @parent_directory = parent_directory
-    @magic_number = 1
+    @magic_number = MAGIC_NUMBER
   end
 
   def create(name, block_index)
@@ -18,16 +19,16 @@ class CustomDirectory < CustomFile
     @parent_directory.append(self)
   end
 
-  def find(file_name, file_type=false)
+  def find(file_name)
     File.open(partition_name, 'r+b') do |file|
       (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
         file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
-          if file_type
-            founded_directory = CustomFile.new(@partition_name)
-          else
+          if file_attributes[:magic_number] == MAGIC_NUMBER
             founded_directory = CustomDirectory.new(@partition_name, self)
+          else
+            founded_directory = CustomFile.new(@partition_name)
           end
 
           file_attributes.each do |attribute, value|
