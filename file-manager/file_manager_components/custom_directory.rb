@@ -3,14 +3,14 @@ require 'date'
 require 'debugger'
 
 class CustomDirectory < CustomFile
-  EMPTYDIRSIZE =  8 # next block link
-  CONTENTDIRSIZE = 64 # 8 (filesize) + 6 (filename) + {ddmmaaaahhmmss}(14) * 3 + 8 (next_block_link)
+  ATTRIBUTES_DATA_SIZE = 70 # magic_number (1) + file_size (8) + file_name (11) + timestamps{ddmmaaaahhmmss} (14) * 3 + next_block_link (8)
 
   attr_accessor :parent_directory # the folder it is inside
 
   def initialize(partition_name, parent_directory)
     @partition_name = partition_name
     @parent_directory = parent_directory
+    @magic_number = 1
   end
 
   def create(name, block_index)
@@ -20,8 +20,8 @@ class CustomDirectory < CustomFile
 
   def find(file_name, file_type=false)
     File.open(partition_name, 'r+b') do |file|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
           if file_type
@@ -45,11 +45,12 @@ class CustomDirectory < CustomFile
 
   def append(custom_file)
     File.open(partition_name, 'r+b') do |file_handler|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file_handler.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
-        if file_handler.getc == EMPTYBYTESYMBOL
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file_handler.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
+        if file_handler.getc == EMPTY_BYTES_SYMBOL
           file_handler.rewind
-          file_handler.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+          file_handler.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
+          file_handler.write(custom_file.magic_number)
           file_handler.write(custom_file.size)
           file_handler.write(custom_file.name)
           file_handler.write(custom_file.created_at)
@@ -72,13 +73,13 @@ class CustomDirectory < CustomFile
 
   def unappend(custom_file)
     File.open(partition_name, 'r+b') do |file|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name] == custom_file.name
           file.rewind
-          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
-          CONTENTDIRSIZE.times { file.write(EMPTYBYTESYMBOL) }
+          file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
+          ATTRIBUTES_DATA_SIZE.times { file.write(EMPTY_BYTES_SYMBOL) }
           return @parent_directory.update_file_size_by(@name.strip, - custom_file.content_size) && reload
         end
       end
@@ -88,24 +89,24 @@ class CustomDirectory < CustomFile
   def all
     all_files = []
     File.open(partition_name, 'r+b') do |file|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         all_files << attributes_of(file)
       end
     end
 
-    all_files.reject { |file| file[:name] == (EMPTYBYTESYMBOL * FILENAMESIZE) }
+    all_files.reject { |file| file[:name] == (EMPTY_BYTES_SYMBOL * FILENAME_SIZE) }
   end
 
   def update_file_size_by(file_name, increased_by)
     File.open(partition_name, 'r+b') do |file|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
           former_size = file_attributes[:size]
           file.rewind
-          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+          file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE) + 1)
           file.write((former_size.to_i + increased_by).to_s.rjust(8, '0'))
           return @parent_directory.update_file_size_by(@name.strip, increased_by) && reload
         end
@@ -119,8 +120,8 @@ class CustomDirectory < CustomFile
 
   def touch!(file_name)
     File.open(partition_name, 'r+b') do |file|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
           founded_directory = CustomDirectory.new(@partition_name, self)
@@ -140,14 +141,15 @@ class CustomDirectory < CustomFile
 
   def update_attributes(file_name, updated_attributes)
     File.open(partition_name, 'r+b') do |file|
-      (4000 / CONTENTDIRSIZE).times do |i|
-        file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
+      (4000 / ATTRIBUTES_DATA_SIZE).times do |i|
+        file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
           file.rewind
-          file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
-          attributes_format = [ [ :size, 8 ], [ :name, FILENAMESIZE ],
-            [ :created_at, 14 ], [ :updated_at, 14 ], [ :touched_at, 14 ] ]
+          file.seek(@block_index.to_i + (i * ATTRIBUTES_DATA_SIZE))
+          attributes_format = [ [ :magic_number, 1 ], [ :size, 8 ],
+            [ :name, FILENAME_SIZE ], [ :created_at, 14 ], [ :updated_at, 14 ],
+            [ :touched_at, 14 ] ]
 
           attributes_format.each do |attribute_format|
             if updated_attributes.has_key?(attribute_format.first)
@@ -170,7 +172,7 @@ class CustomDirectory < CustomFile
   protected
 
     def content_size
-      CONTENTDIRSIZE
+      ATTRIBUTES_DATA_SIZE
     end
 
     def reload
@@ -186,8 +188,9 @@ class CustomDirectory < CustomFile
 
     def attributes_of(file)
       {
+        magic_number: file.getc,
         size: file.gets(8),
-        name: file.gets(6),
+        name: file.gets(FILENAME_SIZE),
         created_at: file.gets(14),
         updated_at: file.gets(14),
         touched_at: file.gets(14),
@@ -196,6 +199,6 @@ class CustomDirectory < CustomFile
     end
 
     def empty_size
-      EMPTYDIRSIZE.to_s.rjust(8, '0')
+      FILE_HEADER_SIZE.to_s.rjust(8, '0')
     end
 end

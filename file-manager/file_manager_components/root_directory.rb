@@ -1,7 +1,7 @@
 class RootDirectory < CustomDirectory
   class NotAllowedActionError < RuntimeError; end
 
-  SIZE = CONTENTDIRSIZE
+  SIZE = ATTRIBUTES_DATA_SIZE
 
   def initialize(partition_name, metadata_index)
     @partition_name = partition_name
@@ -9,6 +9,7 @@ class RootDirectory < CustomDirectory
     @size = empty_size
     @name = '/'.rjust(6)
     @parent_directory = self # trick to append and other methods that uses recursion
+    @magic_number = 1
   end
 
   def create(block_index)
@@ -17,6 +18,7 @@ class RootDirectory < CustomDirectory
 
     File.open(partition_name, 'r+b') do |file|
       file.seek(@metadata_index.to_i)
+      file.write(@magic_number)
       file.write(@size) # filesize
       file.write(@name) # name with size 6
       file.write(@created_at)
@@ -24,7 +26,7 @@ class RootDirectory < CustomDirectory
       file.write(@touched_at)
       file.write(@block_index)
       file.seek(@block_index.to_i)
-      (4000 - 8).times { file.write(EMPTYBYTESYMBOL) }
+      (4000 - 8).times { file.write(EMPTY_BYTES_SYMBOL) }
       file.write(empty_link)
     end
   end
