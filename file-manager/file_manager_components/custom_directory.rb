@@ -18,13 +18,18 @@ class CustomDirectory < CustomFile
     @parent_directory.append(self)
   end
 
-  def find(file_name)
+  def find(file_name, file_type=false)
     File.open(partition_name, 'r+b') do |file|
       (4000 / CONTENTDIRSIZE).times do |i|
         file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
         file_attributes = attributes_of(file)
         if file_attributes[:name].strip == file_name
-          founded_directory = CustomDirectory.new(@partition_name, self)
+          if file_type
+            founded_directory = CustomFile.new(@partition_name)
+          else
+            founded_directory = CustomDirectory.new(@partition_name, self)
+          end
+
           file_attributes.each do |attribute, value|
             founded_directory.send("#{attribute}=", value)
           end
@@ -61,25 +66,20 @@ class CustomDirectory < CustomFile
   end
 
   def destroy
-    File.open(partition_name, 'r+b') do |file|
-      file.seek(@block_index.to_i)
-      4000.times { file.write(EMPTYBYTESYMBOL) }
-    end
+    super
     @parent_directory.unappend(self)
-
-    self.freeze
   end
 
-  def unappend(directory)
+  def unappend(custom_file)
     File.open(partition_name, 'r+b') do |file|
       (4000 / CONTENTDIRSIZE).times do |i|
         file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
         file_attributes = attributes_of(file)
-        if file_attributes[:name] == directory.name
+        if file_attributes[:name] == custom_file.name
           file.rewind
           file.seek(@block_index.to_i + (i * CONTENTDIRSIZE))
           CONTENTDIRSIZE.times { file.write(EMPTYBYTESYMBOL) }
-          return @parent_directory.update_file_size_by(@name.strip, - CONTENTDIRSIZE) && reload
+          return @parent_directory.update_file_size_by(@name.strip, - custom_file.content_size) && reload
         end
       end
     end

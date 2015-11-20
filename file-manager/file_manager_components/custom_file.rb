@@ -32,6 +32,16 @@ class CustomFile
     end
   end
 
+  def destroy
+    File.open(partition_name, 'r+b') do |file|
+      file.seek(@block_index.to_i)
+      4000.times { file.write(EMPTYBYTESYMBOL) }
+    end
+    self.freeze
+
+    true
+  end
+
   protected
 
     def empty_link
@@ -43,7 +53,7 @@ class CustomFile
     end
 
     def content_size
-      empty_size.to_i + @size.to_i
+      @size.to_i
     end
 
     def set_timestamps
