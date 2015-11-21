@@ -7,7 +7,7 @@ class RootDirectory < CustomDirectory
     @partition_name = partition_name
     @metadata_index = metadata_index.to_s.rjust(8, '0')
     @size = empty_size
-    @name = '/'.rjust(6)
+    @name = '/'.rjust(FILENAME_SIZE)
     @parent_directory = self # trick to append and other methods that uses recursion
     @magic_number = MAGIC_NUMBER
   end
@@ -19,8 +19,8 @@ class RootDirectory < CustomDirectory
     File.open(partition_name, 'r+b') do |file|
       file.seek(@metadata_index.to_i)
       file.write(@magic_number)
-      file.write(@size) # filesize
-      file.write(@name) # name with size 6
+      file.write(@size)
+      file.write(@name)
       file.write(@created_at)
       file.write(@updated_at)
       file.write(@touched_at)
@@ -63,5 +63,24 @@ class RootDirectory < CustomDirectory
 
     reload
     true
+  end
+
+  def self.load(partition_name, metadata_index)
+    new(partition_name, metadata_index).load
+  end
+
+  def load
+    File.open(partition_name, 'r+b') do |file|
+      file.seek(@metadata_index.to_i)
+      @magic_number = file.getc
+      @size = file.gets(8)
+      @name = file.gets(FILENAME_SIZE)
+      @created_at = file.gets(14)
+      @updated_at = file.gets(14)
+      @touched_at = file.gets(14)
+      @block_index = file.gets(8)
+    end
+
+    self
   end
 end
