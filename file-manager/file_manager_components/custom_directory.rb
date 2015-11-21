@@ -173,6 +173,10 @@ class CustomDirectory < CustomFile
     raise NameError.new
   end
 
+  def directory?
+    true
+  end
+
   protected
 
     def content_size

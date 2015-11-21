@@ -1,9 +1,9 @@
-require_relative './file_manager_components/custom_directory.rb'
 require_relative './file_manager_components/root_directory.rb'
+require_relative './file_manager_components/fat.rb'
 
 class FileManager
   attr_accessor :partition_size, :partition_name, :block_size
-  attr_reader :root_directory, :umounted
+  attr_reader :root_directory, :umounted, :fat
   FREE_SPACE_SYMBOL = '1'
   USED_SPACE_SYMBOL = '0'
 
@@ -13,6 +13,13 @@ class FileManager
     @block_size = block_size
 
     load!
+    start_fat
+  end
+
+  def start_fat
+    @fat = Fat.new(root_directory, bitmap_size)
+    @fat.start
+    @fat.log
   end
 
   def load!
@@ -25,6 +32,9 @@ class FileManager
     end
 
     @mounted = true
+    @@user_data_offset = user_data_offset
+    @@bitmap_size = bitmap_size
+    @@block_size = @block_size
   end
 
   def new_block
@@ -65,6 +75,14 @@ class FileManager
   def mount(file_name)
     @partition_name = file_name
     load!
+  end
+
+  def self.user_data_offset
+    @@user_data_offset
+  end
+
+  def self.block_size
+    @@block_size
   end
 
   protected

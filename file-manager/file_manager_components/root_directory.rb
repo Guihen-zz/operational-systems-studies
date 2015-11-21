@@ -1,3 +1,5 @@
+require_relative './custom_directory.rb'
+
 class RootDirectory < CustomDirectory
   class NotAllowedActionError < RuntimeError; end
 
