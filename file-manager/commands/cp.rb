@@ -24,6 +24,8 @@ module Commands
             new_file.write(input_string, @file_manager)
             directory.append(new_file)
             directory.update_file_size_by(new_file.name, input_size)
+
+            @file_manager.update_fat(new_file)
           end
         rescue Errno::ENOENT
           raise Commands::InvalidSourceFileError.new

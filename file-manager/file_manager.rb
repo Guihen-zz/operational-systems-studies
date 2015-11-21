@@ -48,6 +48,12 @@ class FileManager
           file.rewind
           file.seek(index)
           file.write(USED_SPACE_SYMBOL)
+
+          unless @fat.nil?
+            @fat.use!(index)
+            @fat.log
+          end
+
           break
         end
       end
@@ -57,11 +63,20 @@ class FileManager
   end
 
   def free(block_index)
-    File.open(partition_name, 'r+b') do |file|
-      bitmap_index = (block_index - user_data_offset) / block_size
-      file.seek(bitmap_index)
-      file.write(FREE_SPACE_SYMBOL)
+    index = (block_index - user_data_offset) / block_size
+    loop do
+      File.open(partition_name, 'r+b') do |file|
+        file.seek(index)
+        file.write(FREE_SPACE_SYMBOL)
+      end
+
+      new_index = @fat.get(index)
+      @fat.free(index)
+      index = new_index
+
+      break if index == Fat::FINAL
     end
+    @fat.log
   end
 
   def umounted?
@@ -83,6 +98,11 @@ class FileManager
 
   def self.block_size
     @@block_size
+  end
+
+  def update_fat(file)
+    @fat.map_file(file)
+    @fat.log
   end
 
   protected
