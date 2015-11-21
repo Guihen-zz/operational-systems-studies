@@ -29,8 +29,8 @@ class CustomFile
     @block_index = block_index.to_s.rjust(8, '0')
     File.open(partition_name, 'r+b') do |file|
       file.seek(block_index)
-      (4000 - 8).times { file.write(EMPTY_BYTES_SYMBOL) }
       file.write(empty_link)
+      (4000 - 8).times { file.write(EMPTY_BYTES_SYMBOL) }
     end
   end
 
@@ -42,6 +42,13 @@ class CustomFile
     self.freeze
 
     true
+  end
+
+  def write(string)
+    File.open(partition_name, 'r+b') do |file|
+      file.seek(@block_index.to_i + 8)
+      file.write(string)
+    end
   end
 
   protected

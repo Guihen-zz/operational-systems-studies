@@ -1,6 +1,5 @@
 require_relative './custom_file.rb'
 require 'date'
-require 'debugger'
 
 class CustomDirectory < CustomFile
   ATTRIBUTES_DATA_SIZE = 70 # magic_number (1) + file_size (8) + file_name (11) + timestamps{ddmmaaaahhmmss} (14) * 3 + next_block_link (8)
@@ -168,6 +167,10 @@ class CustomDirectory < CustomFile
     end
 
     false
+  end
+
+  def write(string)
+    raise NameError.new
   end
 
   protected

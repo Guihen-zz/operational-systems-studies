@@ -34,8 +34,9 @@ module Commands
         end
       end
 
-      def path
-        @path ||= @args.scan(/\/[^\/]+/)
+      def path(other = false)
+        path = other || @args
+        @path ||= path.scan(/\/[^\/]+/)
       end
 
       def directory(path)
