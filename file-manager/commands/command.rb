@@ -2,6 +2,8 @@ module Commands
   class AbstractMethodError < RuntimeError; end
   class InvalidArgumentsError < RuntimeError; end
   class InvalidPartitionError < RuntimeError; end
+  class FileNameError < RuntimeError; end
+  class InvalidCommandError < RuntimeError; end
 
   class Command
 
@@ -40,6 +42,10 @@ module Commands
         directory = @file_manager.root_directory
         path.each { |dir_name| directory = directory.find(dir_name) }
         directory
+      end
+
+      def validate_file_name_length!(file_name)
+        raise FileNameError.new if file_name.size > CustomFile::FILENAME_SIZE
       end
   end
 end

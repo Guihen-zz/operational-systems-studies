@@ -16,6 +16,10 @@ class CommandExecutor
   private
     def execute_command(command, args= nil)
       class_name = command[0, 1].upcase + command[1 .. -1]
-      Commands.const_get(class_name).new(args).execute_with(@file_manager)
+      begin
+        Commands.const_get(class_name).new(args).execute_with(@file_manager)
+      rescue NameError
+        raise Commands::InvalidCommandError.new
+      end
     end
 end

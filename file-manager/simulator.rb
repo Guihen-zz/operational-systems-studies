@@ -23,6 +23,12 @@ class Simulator
         puts "Comando invalido: arquivo ou diretorio nao encontrado."
       rescue Commands::InvalidPartitionError
         puts "Comando invalido: nenhuma particao encontrada."
+      rescue Commands::PartitionAlreadyMountedError
+        puts "Comando invalido: ja existe uma particao montada."
+      rescue Commands::FileNameError
+        puts "Comando invalido: nome de arquivo invalido."
+      rescue Commands::InvalidCommandError
+        puts "Comando invalido: comando nao existe."
       end
     end
   end

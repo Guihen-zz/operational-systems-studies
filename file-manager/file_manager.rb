@@ -11,8 +11,11 @@ class FileManager
     @partition_name = partition_name
     @partition_size = partition_size
     @block_size = block_size
-    @umounted = false
 
+    load!
+  end
+
+  def load!
     if !File.exists?(partition_name)
       File.new(partition_name, 'w+b')
       new_free_space_management
@@ -20,6 +23,8 @@ class FileManager
     else
       load_root_file
     end
+
+    @mounted = true
   end
 
   def new_block
@@ -50,12 +55,16 @@ class FileManager
   end
 
   def umounted?
-    @umounted
+    !@mounted
   end
 
   def umount!
-    @umounted = true
-    self.freeze
+    @mounted = false
+  end
+
+  def mount(file_name)
+    @partition_name = file_name
+    load!
   end
 
   protected
