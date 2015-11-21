@@ -3,7 +3,8 @@ require_relative './command.rb'
 module Commands
   class Cat < Command
     def execute
-      puts "Showing content of file #{args}"
+      file_name = path.pop
+      puts directory(path).find(file_name).read
     end
   end
 end
