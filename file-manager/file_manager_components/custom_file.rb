@@ -74,12 +74,17 @@ class CustomFile
 
   def read
     text = ""
-    File.open(partition_name, 'rb') do |file|
-      file.seek(@block_index.to_i)
-      (4000 - 8).times do
-        byte = file.getc
-        return text if byte == EMPTY_BYTES_SYMBOL
-        text << byte
+    block_index = @block_index
+    loop do
+      File.open(partition_name, 'rb') do |file|
+        file.seek(block_index.to_i)
+        (4000 - 8).times do
+          byte = file.getc
+          return text if byte == EMPTY_BYTES_SYMBOL
+          text << byte
+        end
+        block_index = file.gets(8)
+        return text if block_index != empty_link
       end
     end
 
