@@ -19,8 +19,11 @@ module Commands
           File.open(from, 'r') do |file|
             new_file = CustomFile.new(@file_manager.partition_name)
             new_file.create(file_name, @file_manager.new_block)
-            new_file.write(file.gets(nil), @file_manager)
+            input_string = file.gets(nil)
+            input_size = input_string.size
+            new_file.write(input_string, @file_manager)
             directory.append(new_file)
+            directory.update_file_size_by(new_file.name, input_size)
           end
         rescue Errno::ENOENT
           raise Commands::InvalidSourceFileError.new

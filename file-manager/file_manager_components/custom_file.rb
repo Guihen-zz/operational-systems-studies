@@ -45,6 +45,8 @@ class CustomFile
   end
 
   def write(string, file_manager = nil)
+    @size = (@size.to_i + string.size).to_s.rjust(8, '0')
+
     if string.size < (4000 - 8)
       File.open(partition_name, 'r+b') do |file|
         file.seek(@block_index.to_i)
