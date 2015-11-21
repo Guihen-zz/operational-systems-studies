@@ -1,9 +1,9 @@
 require_relative './command.rb'
 
 module Commands
-  class Umont < Command
+  class Umount < Command
     def execute
-      puts "Umounting the file system"
+      @file_manager.umount!
     end
   end
 end

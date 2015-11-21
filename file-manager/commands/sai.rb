@@ -4,7 +4,7 @@ module Commands
   class CallToExit < Exception; end
 
   class Sai < Command
-    def execute
+    def execute_with(file_manager)
       raise CallToExit
     end
   end

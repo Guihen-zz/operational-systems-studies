@@ -2,26 +2,20 @@ require_relative './file_manager_components/custom_directory.rb'
 require_relative './file_manager_components/root_directory.rb'
 
 class FileManager
-  attr_accessor :partition_size, :partition_name, :block_size, :inodes_index
-  attr_reader :root_directory
-  NULLBIT = ' '
+  attr_accessor :partition_size, :partition_name, :block_size
+  attr_reader :root_directory, :umounted
 
-  def initialize(partition_name)
+  def initialize(partition_name, partition_size = 100000000, block_size = 4000)
     @partition_name = partition_name
-    @partition_size = 100000000
-    @block_size = 4000
-    @inodes_index = 0
-  end
+    @partition_size = partition_size
+    @block_size = block_size
+    @umounted = false
 
-  def start_free_space_management
-    File.open(partition_name, 'w+b') do |file|
-      bitmap_size.times { file.write('1') }
+    if !File.exists?(partition_name)
+      File.new(partition_name, 'w+b')
+      start_free_space_management
+      start_root_file
     end
-  end
-
-  def start_root_file
-    @root_directory = RootDirectory.new(partition_name, root_block)
-    @root_directory.create(new_block)
   end
 
   def new_block
@@ -52,7 +46,27 @@ class FileManager
     end
   end
 
-  private
+  def umounted?
+    @umounted
+  end
+
+  def umount!
+    @umounted = true
+    self.freeze
+  end
+
+  protected
+    def start_free_space_management
+      File.open(partition_name, 'r+b') do |file|
+        bitmap_size.times { file.write('1') }
+      end
+    end
+
+    def start_root_file
+      @root_directory = RootDirectory.new(partition_name, root_block)
+      @root_directory.create(new_block)
+    end
+
     def bitmap_offset
       0
     end

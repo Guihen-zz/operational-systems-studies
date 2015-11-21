@@ -1,7 +1,9 @@
 module Commands
+  class AbstractMethodError < RuntimeError; end
+  class InvalidArgumentsError < RuntimeError; end
+  class InvalidPartitionError < RuntimeError; end
+
   class Command
-    class AbstractMethodError < RuntimeError; end
-    class InvalidArgumentsError < RuntimeError; end
 
     attr_reader :args
 
@@ -10,6 +12,8 @@ module Commands
     end
 
     def execute_with(file_manager)
+      raise InvalidPartitionError.new if file_manager.umounted?
+
       @file_manager = file_manager
       execute
     end
