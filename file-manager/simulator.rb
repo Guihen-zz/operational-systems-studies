@@ -32,7 +32,9 @@ class Simulator
       rescue Commands::FileAlreadyExistsError
         puts "Comando invalido: arquivo ja existe."
       rescue Commands::InvalidSourceFileError
-        puts "Comando invalid: arquivo de origem nao existe."
+        puts "Comando invalido: arquivo de origem nao existe."
+      rescue Commands::InvalidArgumentsError
+        puts "Comando invalido: comando com parametros invalidos"
       end
     end
   end

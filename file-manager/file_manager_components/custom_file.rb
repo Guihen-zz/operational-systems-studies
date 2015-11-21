@@ -35,12 +35,22 @@ class CustomFile
   end
 
   def destroy
-    File.open(partition_name, 'r+b') do |file|
-      file.seek(@block_index.to_i)
-      4000.times { file.write(EMPTY_BYTES_SYMBOL) }
+    block_index = @block_index
+    loop do
+      end_of_file = false
+      File.open(partition_name, 'r+b') do |file|
+        file.seek(block_index.to_i)
+        (4000 - 8).times { file.write(EMPTY_BYTES_SYMBOL) }
+        new_block_index = file.gets(8).dup
+        file.rewind
+        file.seek(block_index.to_i + 4000 - 8)
+        file.write(EMPTY_BYTES_SYMBOL * 8)
+        block_index = new_block_index
+      end
+      break if block_index == empty_link
     end
-    self.freeze
 
+    self.freeze
     true
   end
 
