@@ -5,7 +5,8 @@ module Commands
     def execute
       directory(path).all.each do |file_attributes|
         last_modified_at = DateTime.parse(file_attributes[:updated_at]).strftime("%e %b %Y %k:%M")
-        printf("%8s %s %s\n", file_attributes[:size].to_i, last_modified_at, file_attributes[:name].strip)
+        directory_flag = file_attributes[:magic_number] == CustomDirectory::MAGIC_NUMBER ? 'd' : ' '
+        printf("%c %8s %s %s\n", directory_flag, file_attributes[:size].to_i, last_modified_at, file_attributes[:name].strip)
       end
     end
   end
