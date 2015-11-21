@@ -44,10 +44,31 @@ class CustomFile
     true
   end
 
-  def write(string)
-    File.open(partition_name, 'r+b') do |file|
-      file.seek(@block_index.to_i)
-      file.write(string)
+  def write(string, file_manager = nil)
+    if string.size < (4000 - 8)
+      File.open(partition_name, 'r+b') do |file|
+        file.seek(@block_index.to_i)
+        file.write(string)
+      end
+    elsif file_manager.nil?
+      raise RuntimeError.new
+    else
+      block_index = @block_index.to_i
+      (string.size.to_f / (4000 - 8)).ceil.times do |i|
+        if i > 0
+          File.open(partition_name, 'r+b') do |file|
+            file.seek(block_index + 4000 - 8)
+            block_index = file_manager.new_block
+            file.write(block_index.to_s.rjust(8, '0'))
+          end
+        end
+
+        File.open(partition_name, 'r+b') do |file|
+          file.seek(block_index)
+          file.write(string.slice!(0, 4000 - 8).ljust(4000 - 8, EMPTY_BYTES_SYMBOL))
+          file.write(empty_link)
+        end
+      end
     end
   end
 

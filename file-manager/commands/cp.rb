@@ -19,7 +19,7 @@ module Commands
           File.open(from, 'r') do |file|
             new_file = CustomFile.new(@file_manager.partition_name)
             new_file.create(file_name, @file_manager.new_block)
-            new_file.write(file.gets(nil, 4000 - 8))
+            new_file.write(file.gets(nil), @file_manager)
             directory.append(new_file)
           end
         rescue Errno::ENOENT
