@@ -41,7 +41,7 @@ module Commands
 
       def directory(path)
         directory = @file_manager.root_directory
-        path.each { |dir_name| directory = directory.find(dir_name) }
+        path.each { |dir_name| directory = directory.find(dir_name[1..-1]) }
         directory
       end
 

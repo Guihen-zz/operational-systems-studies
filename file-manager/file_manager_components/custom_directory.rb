@@ -178,7 +178,7 @@ class CustomDirectory < CustomFile
   end
 
   def full_name(parent_directory=nil)
-    @parent_directory.full_name + @name.strip
+    @parent_directory.full_name + "/#{@name.strip}"
   end
 
   protected

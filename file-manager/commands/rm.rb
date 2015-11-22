@@ -3,7 +3,7 @@ require_relative './command.rb'
 module Commands
   class Rm < Command
     def execute
-      file_name = path.pop
+      file_name = path.pop[1..-1]
       parent_directory = directory(path)
       file = parent_directory.find(file_name)
       @file_manager.free(file.block_index.to_i)

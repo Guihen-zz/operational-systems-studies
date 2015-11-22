@@ -6,7 +6,7 @@ module Commands
     def execute
       path = @args.scan(/\/[^\/]+/)
       directory = @file_manager.root_directory
-      path.each { |dir_name| directory = directory.find(dir_name) }
+      path.each { |dir_name| directory = directory.find(dir_name[1..-1]) }
       @file_manager.free(directory.block_index.to_i)
       directory.destroy
     end

@@ -87,6 +87,6 @@ class RootDirectory < CustomDirectory
   end
 
   def full_name
-    @name.strip
+    ""
   end
 end

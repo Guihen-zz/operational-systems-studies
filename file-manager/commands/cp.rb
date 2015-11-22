@@ -8,7 +8,7 @@ module Commands
     def execute
       from, to = get_two_parmeters!
 
-      file_name = path(to).pop
+      file_name = path(to).pop[1..-1]
       directory = directory(path)
 
       begin
