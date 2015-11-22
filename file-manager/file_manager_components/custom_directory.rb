@@ -177,6 +177,10 @@ class CustomDirectory < CustomFile
     true
   end
 
+  def full_name(parent_directory=nil)
+    @parent_directory.full_name + @name.strip
+  end
+
   protected
 
     def content_size

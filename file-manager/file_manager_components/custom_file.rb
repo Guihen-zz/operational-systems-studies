@@ -116,6 +116,10 @@ class CustomFile
     next_block_link
   end
 
+  def full_name(parent_directory)
+    parent_directory.full_name + @name.strip
+  end
+
   protected
 
     def empty_link
